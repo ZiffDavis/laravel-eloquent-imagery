@@ -1,0 +1,23 @@
+{
+    "name": "ziffdavis/laravel-eloquent-imagery",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Ralph Schindler",
+            "email": "ralph_schindler@ziffdavis.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "ZiffDavis\\Laravel\\EloquentImagery\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ZiffDavis\\Laravel\\EloquentImagery\\EloquentImageryProvider"
+            ]
+        }
+    }
+}

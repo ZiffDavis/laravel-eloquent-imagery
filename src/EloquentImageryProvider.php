@@ -3,6 +3,7 @@
 namespace ZiffDavis\Laravel\EloquentImagery;
 
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class EloquentImageryProvider extends ServiceProvider
@@ -17,10 +18,30 @@ class EloquentImageryProvider extends ServiceProvider
             $this->publishes([$source => config_path('eloquent_imagery.php')]);
         }
 
-        $imageRoute = rtrim(config('eloquent_imagery.image_route', '/image'), '/');
 
-        $router->get("{$imageRoute}/{path}", ImageController::class . '@handle')
-            ->where('path', '(.*)')
-            ->name('eloquent-imagery.image');
+        if (config('eloquent_imagery.enable_placeholder_route')) {
+            $this->checkPrequisites();
+            $placeholderRoute = rtrim(config('eloquent_imagery.placeholder_route', '/_p'), '/');
+            $router->get("{$placeholderRoute}/{path}", ImageController::class . '@placeholder')
+                ->where('path', '(.*)')
+                ->name('eloquent_imagery.placeholder');
+            Blade::directive('placeholderImage', [BladeDirectives::class, 'placeholderUrl']);
+        }
+
+        if (config('eloquent_imagery.enable_render_route')) {
+            $this->checkPrequisites();
+            $imageRoute = rtrim(config('eloquent_imagery.render_route', '/_i'), '/');
+            $router->get("{$imageRoute}/{path}", ImageController::class . '@render')
+                ->where('path', '(.*)')
+                ->name('eloquent_imagery.render');
+        }
+    }
+
+    private function checkPrequisites()
+    {
+        $ok = (extension_loaded('imagick') && class_exists('\Intervention\Image\Image'));
+        if (!$ok) {
+            throw new \RuntimeException("Eloquent Imagery requires ext/ImageMagick and Intervention/Image in order to render images");
+        }
     }
 }

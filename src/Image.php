@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class Image implements \JsonSerializable
 {
     protected $model = null;
     protected $attribute = null;
     protected $path = '';
+    /** @var \Illuminate\Contracts\Filesystem\Filesystem */
     protected $filesystem;
 
     protected $extension = '';
@@ -40,9 +42,31 @@ class Image implements \JsonSerializable
         return $this->exists;
     }
 
-    public function getUrl()
+    public function url($renderOptions = null)
     {
-        return url()->route('eloquent-imagery.image', ['path' => $this->path ?? 'no-path']);
+        $renderEnabled = config("eloquent_imagery.enable_render_route");
+        $renderUnmodifiedImages = config("eloquent_imagery.render_unmodified_images");
+
+        if ($renderOptions && !$renderEnabled) {
+            throw new \RuntimeException("Cannot process render options unless the rendering route is enabled");
+        }
+
+        if (
+            ($renderEnabled && $renderOptions) ||
+            ($renderEnabled && $renderUnmodifiedImages)
+        ) {
+            $fileParts = explode(".", $this->path);
+            $fileStub = implode(".", array_slice($fileParts, 0, count($fileParts) - 1));
+            $extension = end($fileParts);
+            $path = "$fileStub.";
+            $sortedOptions = explode("|", $renderOptions);
+            sort($sortedOptions);
+            $path .= implode("_", $sortedOptions);
+            $path .= ".$extension";
+            return url(route("eloquent_imagery.render", $path));
+        } else {
+            return Storage::disk($this->filesystem)->url($this->path);
+        }
     }
 
     public function unserializeFromModel()

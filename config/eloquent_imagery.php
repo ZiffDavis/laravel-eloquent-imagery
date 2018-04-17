@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'filesystem' => env('IMAGERY_FILESYSTEM', 'local'),
+    'filesystem' => env('IMAGERY_FILESYSTEM', 'public'),
     'cache_store' =>  env('IMAGERY_CACHE_STORE', 'disk'),
     'enable_render_cache' => env('IMAGERY_ENABLE_CACHE', false),
     'render_cache_ttl' => env('IMAGERY_CACHE_TTL', 60),
@@ -9,6 +9,7 @@ return [
     'enable_fallback_placeholders' => env('IMAGERY_ENABLE_FALLBACK_PLACEHOLDERS', false),
     'enable_placeholder_route' => env('IMAGERY_ENABLE_PLACEHOLDER_ROUTE', false),
     'enable_render_route' => env('IMAGERY_ENABLE_RENDER_ROUTE', true),
+    'render_unmodified_images' => false,
     'placholder_route' => '/_p',
     'render_route' => '/_i',
 ];

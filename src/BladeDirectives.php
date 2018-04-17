@@ -3,11 +3,6 @@ namespace ZiffDavis\Laravel\EloquentImagery;
 
 class BladeDirectives
 {
-    public static function imageUrl($args)
-    {
-
-    }
-
     public static function placeholderUrl($args)
     {
         $individualArgs = explode(",", $args);
@@ -21,6 +16,6 @@ class BladeDirectives
         }
         $path = "$backgroundColor.w$width.h$height.png";
         $url = route('eloquent_imagery.placeholder', $path);
-        return "<?php echo '<img src=\"$url\"/>'?>";
+        return "$url";
     }
 }

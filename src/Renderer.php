@@ -6,7 +6,7 @@ use Intervention\Image\Filters\FilterInterface;
 use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
 
-class Transformer
+class Renderer
 {
     const FIT_PAD_LIMIT = 'lpad';
     const FIT_RESIZE = 'resize';
@@ -38,10 +38,21 @@ class Transformer
     /** @var  int|array */
     protected $crop;
 
+
     /**
-     * @param string $fit
+     * @param int $width
+     * @param int $height
      */
-    public function setFit(string $fit)
+    public function setSize($dimensions)
+    {
+        list($this->width, $this->height) = explode("x", $dimensions);
+    }
+
+    /**
+     * @param int $width
+     * @param int $height
+     */
+    public function setFit($fit)
     {
         $this->fit = $fit;
     }
@@ -114,7 +125,7 @@ class Transformer
 
 
 
-    public function transform($bytes)
+    public function render($bytes)
     {
         $imageManager = new ImageManager(['driver' => 'imagick']);
         $img = $imageManager->make($bytes);

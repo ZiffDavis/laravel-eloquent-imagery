@@ -10,15 +10,14 @@ use League\Flysystem\Filesystem;
 
 class ImageController extends Controller
 {
-    const URL_OPERATORS = [
-        'width'         => '/^w([0-9]+)$/', // set width
-        'height'        => '/^h([0-9]+)$/', // set height
-        'fit'           => '/^f([a-z]+)$/', // change fit
-        'grayscale'     => '/^g$/', // grayscale
-        'quality'       => '/^q([0-9])+/', //quality, if applicable
-        'bgcolor'       => '/^b([\da-f]{6})$/', // background hex
-        'trimtolerance' => '/^t(\d+)$/', // trim, tolerance
-        'crop'          => '/^c([\d,?]+)$/' // crop operations
+    protected $urlOperators = [
+        'size'      => '/^size:([0-9]+x[0-9]+)$/', // set width
+        'fit'       => '/^fit:([a-z]+)$/', // set height
+        'grayscale' => '/^grayscale$/', // grayscale
+        'quality'   => '/^quality:([0-9])+/', //quality, if applicable
+        'bgcolor'   => '/^bg:([\da-f]{6})$/', // background hex
+        'trim'      => '/^trim:(\d+)$/', // trim, tolerance
+        'crop'      => '/^crop:([\d,?]+)$/' // crop operations
     ];
 
     public function render(Request $request, $path)
@@ -41,10 +40,10 @@ class ImageController extends Controller
         $storageFilePath = "/" . implode("/", array_slice($pathParts, 0, count($pathParts) - 1)) . "/" . $sourceImageFilename;
 
         $imageParams = [];
-        $renderOperators = array_slice($renderFilenameParts, 1, count($renderFilenameParts) - 2);
+        $renderOperators = explode("_", $renderFilenameParts[1]);
         foreach ($renderOperators as $renderOperator) {
             $matches = [];
-            foreach (self::URL_OPERATORS as $operator => $regex) {
+            foreach ($this->urlOperators as $operator => $regex) {
                 if (preg_match($regex, $renderOperator, $matches)) {
                     $arg = null;
                     if (isset($matches[1])) {
@@ -70,11 +69,11 @@ class ImageController extends Controller
             }
         }
 
-        $transformation = new Transformer();
+        $renderer = new Renderer();
         foreach ($imageParams as $operator => $arg) {
-            call_user_func_array([$transformation, "set" . ucfirst($operator)], [$arg]);
+            call_user_func_array([$renderer, "set" . ucfirst($operator)], [$arg]);
         }
-        $transformedBytes = $transformation->transform($bytes);
+        $transformedBytes = $renderer->render($bytes);
 
         $browserCacheMaxAge = config('eloquent_imagery.browser_cache_max_age');
         $response = response()

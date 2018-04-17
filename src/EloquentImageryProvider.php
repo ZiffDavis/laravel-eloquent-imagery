@@ -39,9 +39,11 @@ class EloquentImageryProvider extends ServiceProvider
 
     private function checkPrequisites()
     {
-        $ok = (extension_loaded('imagick') && class_exists('\Intervention\Image\Image'));
-        if (!$ok) {
-            throw new \RuntimeException("Eloquent Imagery requires ext/ImageMagick and Intervention/Image in order to render images");
+        if (!$this->app->runningInConsole()) {
+            $ok = (extension_loaded('imagick') && class_exists('\Intervention\Image\Image'));
+            if (!$ok) {
+                throw new \RuntimeException("Eloquent Imagery requires ext/ImageMagick and Intervention/Image in order to render images");
+            }
         }
     }
 }

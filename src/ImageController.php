@@ -73,11 +73,11 @@ class ImageController extends Controller
         foreach ($imageParams as $operator => $arg) {
             call_user_func_array([$renderer, "set" . ucfirst($operator)], [$arg]);
         }
-        $transformedBytes = $renderer->render($bytes);
+        $renderedBytes = $renderer->render($bytes);
 
         $browserCacheMaxAge = config('eloquent_imagery.browser_cache_max_age');
         $response = response()
-            ->make($transformedBytes)
+            ->make($renderedBytes)
             ->header('Content-type', $mimeType)
             ->header('Cache-control', "max-age=$browserCacheMaxAge");
 

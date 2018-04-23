@@ -75,6 +75,7 @@ class EloquentImageryController extends Controller
             $storagePath .= $pathinfo['basename'];
         }
 
+        // assume the mime type is PNG unless otherwise specified
         $mimeType = 'image/png';
 
         if ($filenameWithoutExtension === config('eloquent_imagery.render.placeholder.filename') && config('eloquent_imagery.render.placeholder.enable')) {
@@ -94,6 +95,7 @@ class EloquentImageryController extends Controller
             $bytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);
         }
 
+        // if there are no files that match, and placeholders are disabled give a 404
         if (!$bytes) {
             return abort(404);
         }

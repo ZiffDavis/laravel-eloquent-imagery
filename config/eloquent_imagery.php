@@ -66,24 +66,27 @@ return [
              * Which driver to use for caching
              */
             'driver' => env('IMAGERY_RENDER_CACHING_DRIVER', 'disk'),
+
+            /**
+             * Header TTL
+             */
             'ttl' => 60
         ],
 
+        /**
+         * What to set the browsers max age cache header to from the render route
+         */
         'browser_cache_max_age' => 31536000
     ],
 
-    'force_unmodified_image_rendering' => env('IMAGERY_FORCE_UNMODIFIED_IMAGE_RENDERING', false),
-
-
-    //
-    // // 'cache_store' =>  env('IMAGERY_CACHE_STORE', 'disk'),
-    // // 'enable_render_cache' => env('IMAGERY_ENABLE_CACHE', false),
-    // 'render_cache_ttl' => env('IMAGERY_CACHE_TTL', 60),
-    // 'browser_cache_max_age' => env('BROWSER_CACHE_MAX_AGE', 31536000),
-    // 'enable_fallback_placeholders' => env('IMAGERY_ENABLE_FALLBACK_PLACEHOLDERS', false),
-    // 'enable_placeholder_route' => env('IMAGERY_ENABLE_PLACEHOLDER_ROUTE', false),
-    // 'enable_render_route' => env('IMAGERY_ENABLE_RENDER_ROUTE', true),
-    // 'render_unmodified_images' => false,
-    // 'placholder_route' => '/_p',
-    // 'render_route' => '/_i',
+    /**
+     * Force unmodified images to be rendered anyway
+     *
+     * By default, images that have no modifiers will be directed to the file storage's
+     * url as represented by Filesystem->url() method call (this could be a storage:link
+     * directory, or the direct path to an S3 object).
+     *
+     * When set to true, all images will be attempted to be rendered if rendering is on.
+     */
+    'force_unmodified_image_rendering' => env('IMAGERY_FORCE_UNMODIFIED_IMAGE_RENDERING', false)
 ];

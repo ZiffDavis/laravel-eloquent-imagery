@@ -43,26 +43,33 @@ class Image implements \JsonSerializable
 
     public function url($modifiers = null)
     {
-        $renderRouteEnabled = config('eloquent_imagery.render_route.enable');
+        $renderRouteEnabled = config('eloquent_imagery.render.enable');
 
         if ($renderRouteEnabled === false && $modifiers) {
             throw new \RuntimeException('Cannot process render options unless the rendering route is enabled');
         }
 
-        $forceUnmodifiedImageRendering = config('eloquent_imagery.force_unmodified_image_rendering');
+        // $forceUnmodifiedImageRendering = config('eloquent_imagery.render.force_unmodified_image_rendering');
 
-        if ($renderRouteEnabled === false || (!$modifiers && $forceUnmodifiedImageRendering === false)) {
+        // || (!$modifiers && $forceUnmodifiedImageRendering === false)
+        if ($renderRouteEnabled === false) {
             return Storage::disk($this->filesystem)->url($this->path);
         }
 
-        $modifierParts = explode('|', $modifiers);
-        sort($modifierParts);
+        if ($modifiers) {
+            $modifierParts = explode('|', $modifiers);
+            sort($modifierParts);
+            $modifiers = implode('_', $modifierParts);
+        }
 
         // keyed with [dirname, filename, basename, extension]
         $pathinfo = pathinfo($this->path);
 
-        $pathWithModifiers = (($pathinfo['dirname'] !== '.') ? $pathinfo['dirname'] . '/' : '')
-            . $pathinfo['filename'] . '.' . implode('_', $modifierParts) . '.' . $pathinfo['extension'];
+        $pathWithModifiers =
+            (($pathinfo['dirname'] !== '.') ? "{$pathinfo['dirname']}/" : '')
+            . $pathinfo['filename']
+            . ($modifiers ? ".{$modifiers}" : '')
+            . ".{$pathinfo['extension']}";
 
         return url()->route('eloquent_imagery.render', $pathWithModifiers);
     }
@@ -233,19 +240,6 @@ class Image implements \JsonSerializable
         }
         return $this->{$name};
     }
-
-    // public function __debugInfo()
-    // {
-    //     return [
-    //         'path' => $this->path,
-    //         'extension' => $this->extension,
-    //         'width' => $this->width,
-    //         'height' => $this->height,
-    //         'hash' => $this->hash,
-    //         'timestamp' => $this->timestamp,
-    //         'metadata' => $this->metadata
-    //     ];
-    // }
 
     public function jsonSerialize()
     {

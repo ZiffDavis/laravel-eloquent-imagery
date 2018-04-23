@@ -1,12 +1,12 @@
 <?php
-namespace ZiffDavis\Laravel\EloquentImagery;
+namespace ZiffDavis\Laravel\EloquentImagery\Image;
 
 use Intervention\Image\Constraint;
 use Intervention\Image\Filters\FilterInterface;
-use Intervention\Image\Image;
+use Intervention\Image\Image as InterventionImage;
 use Intervention\Image\ImageManager;
 
-class Renderer
+class ImageModifier
 {
     const FIT_PAD_LIMIT = 'lpad';
     const FIT_RESIZE = 'resize';
@@ -38,68 +38,41 @@ class Renderer
     /** @var  int|array */
     protected $crop;
 
-
-    /**
-     * @param int $width
-     * @param int $height
-     */
     public function setSize($dimensions)
     {
-        list($this->width, $this->height) = explode("x", $dimensions);
+        list($this->width, $this->height) = explode('x', $dimensions);
     }
 
-    /**
-     * @param int $width
-     * @param int $height
-     */
     public function setFit($fit)
     {
         $this->fit = $fit;
     }
 
-    /**
-     * @param int $width
-     */
     public function setWidth(int $width)
     {
         $this->width = $width;
     }
 
-    /**
-     * @param int $height
-     */
     public function setHeight(int $height)
     {
         $this->height = $height;
     }
 
-    /**
-     * @param boolean $grayscale
-     */
     public function setGrayscale(bool $grayscale = true)
     {
         $this->grayscale = $grayscale;
     }
 
-    /**
-     * @param int $quality
-     */
     public function setQuality(int $quality)
     {
         $this->quality = $quality;
     }
 
-    /**
-     * @param string $bgcolor
-     */
     public function setBgcolor(string $bgcolor)
     {
         $this->bgcolor = $bgcolor;
     }
 
-    /**
-     * @param int $trimTolerance
-     */
     public function setTrimTolerance(int $trimTolerance)
     {
         if ($trimTolerance > 99) {
@@ -111,31 +84,25 @@ class Renderer
         $this->trimTolerance = $trimTolerance;
     }
 
-    /**
-     * @param array|int $crop
-     */
     public function setCrop($crop)
     {
-        if (strpos($crop, ",") !== false) {
-            $this->crop = explode(",", $crop);
+        if (strpos($crop, ',') !== false) {
+            $this->crop = explode(',', $crop);
         } else {
             $this->crop = $crop;
         }
     }
 
-
-
-    public function render($bytes)
+    public function modify($bytes)
     {
         $imageManager = new ImageManager(['driver' => 'imagick']);
         $img = $imageManager->make($bytes);
         $originaltype = $img->mime();
-        $encodeType = str_replace(["image/", "jpeg"], ["", "jpg"], $originaltype);
+        $encodeType = str_replace(['image/', 'jpeg'], ['', 'jpg'], $originaltype);
 
         if ($originaltype == "image/jpeg") {
             $img->filter(new class implements FilterInterface {
-                public function applyFilter(\Intervention\Image\Image $image)
-                {
+                public function applyFilter(InterventionImage $image) {
                     $core = $image->getCore();
                     if ($core instanceof \Imagick) {
                         $core->stripImage();
@@ -148,7 +115,7 @@ class Renderer
             });
             /** @var \Imagick $core */
             $core = $img->getCore();
-            $core->setSamplingFactors(["2x2", "1x1", "1x1"]);
+            $core->setSamplingFactors(['2x2', '1x1', '1x1']);
         }
 
         if ($this->trimTolerance) {
@@ -209,6 +176,7 @@ class Renderer
         if ($this->grayscale) {
             $img->greyscale();
         }
+
         return $img->encode($encodeType, $this->quality)->__toString();
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace ZiffDavis\Laravel\EloquentImagery;
+namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
 use Illuminate\Support\Str;
 
@@ -23,12 +23,16 @@ trait HasEloquentImagery
      * @param null $filesystem
      * @return Image
      */
-    public function eloquentImagery($path, $attribute = null, $filesystem = null)
+    public function eloquentImagery($path = null, $attribute = null, $filesystem = null)
     {
         if (!$attribute) {
             $attribute = Str::snake(
                 debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function']
             );
+        }
+
+        if (!$path) {
+            $path = Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}";
         }
 
         if (!isset($this->eloquentImageryImages[$attribute])) {

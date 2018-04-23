@@ -1,6 +1,6 @@
 <?php
 
-namespace ZiffDavis\Laravel\EloquentImagery;
+namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
 

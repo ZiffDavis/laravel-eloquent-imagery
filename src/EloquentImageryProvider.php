@@ -20,7 +20,6 @@ class EloquentImageryProvider extends ServiceProvider
         }
 
         if (config('eloquent_imagery.render.enable')) {
-
             if (!$this->app->runningInConsole() && !extension_loaded('imagick') && !class_exists(InterventionImage::class)) {
                 throw new \RuntimeException('Eloquent Imagery requires ext/ImageMagick and intervention/image package in order to render images');
             }
@@ -30,6 +29,8 @@ class EloquentImageryProvider extends ServiceProvider
             $router->get("{$imageRoute}/{path}", Controller\EloquentImageryController::class . '@render')
                 ->where('path', '(.*)')
                 ->name('eloquent_imagery.render');
+
+            Blade::directive('placeholderImageUrl', [View\BladeDirectives::class, 'placeholderImageUrl']);
         }
     }
 

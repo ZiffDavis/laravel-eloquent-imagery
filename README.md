@@ -42,6 +42,8 @@ It is now ready to use.
 
 ## Usage
 
+### Attaching An Image To A Model
+
 In the simplest use case for a single image attached to a model, first
 create a `json` column in a migration to handle this image:
 
@@ -60,29 +62,39 @@ class Post extends Model
 {
     use HasEloquentImagery;
 
-    // ...
-
-    public function image()
+    public function __construct(array $attributes = [])
     {
-        return $this->eloquentImagery();
+        $this->eloquentImagery('image');
+
+        parent::__construct($attributes);
     }
 }
 ```
 
-The above makes the following assumptions that can be demonstrated by
-the following code with comments:
+### Displaying An Image In A View
+
+The following blade syntax assumes $post is a Model of type Post with
+an `image` attribute.  This will generate a url
+similar to `/imagery/post/11/image.png`:
 
 ```php
-// in class Post
-public function image()
-{
-    return $this->eloquentImagery(
-        'posts/{id}/image.{extension}', // $path: default is generated, "image" in this case is from attribute below
-        'image', // $attribute: default will use the name of the method
-        'filesystem' // $filesystem: default from config('eloquent_imagery.filesystem', config('filesystems.default'));
-    );
-}
+@if($bam->image->exists)
+    <img src="{{ $bam->image->url() }}" width="20" />
+@endif
 ```
+
+Using modifiers when generating the url, a url generated such as
+`/imagery/post/11/image.@size200x200@trim.png`
+
+```php
+@if($bam->image->exists)
+    <img src="{{ $bam->image->url('size200x200|trim) }}" width="20" />
+@endif
+```
+
+## Image Modifiers
+
+TODO
 
 ## Detailed Configuration
 

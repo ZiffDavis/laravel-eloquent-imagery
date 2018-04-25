@@ -3,16 +3,32 @@
 namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EloquentImageryObserver
 {
-    public function saving(Model $model)
+    /**
+     * @param \Illuminate\Database\Eloquent\Model|\ZiffDavis\Laravel\EloquentImagery\Eloquent\HasEloquentImagery $model
+     */
+    public function retrieved(Model $model)
     {
         foreach ($model->getEloquentImageryImages() as $imageAttributeKey => $image) {
-            $image->serializeToModel();
+            $image->unserializeFromModel();
         }
+        $model->eloquentImageryRestoreImagesToAttributes();
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Model|\ZiffDavis\Laravel\EloquentImagery\Eloquent\HasEloquentImagery $model
+     */
+    public function saving(Model $model)
+    {
+        $model->eloquentImagerySerialize();
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Model|\ZiffDavis\Laravel\EloquentImagery\Eloquent\HasEloquentImagery $model
+     */
     public function saved(Model $model)
     {
         foreach ($model->getEloquentImageryImages() as $imageAttributeKey => $image) {
@@ -32,28 +48,19 @@ class EloquentImageryObserver
             }
             $image->flush();
         }
-    }
 
-    public function deleting(Model $model)
-    {
-        $methods = get_class_methods($model);
-        foreach ($methods as $method) {
-            if (preg_match('#^get(\w+)Attribute$#', $method)) {
-                $return = $model->{$method}();
-                if ($return instanceof Image) {
-                    $return->removeOnFlush();
-                }
-            }
-        }
+        $model->eloquentImageryRestoreImagesToAttributes();
     }
 
     public function deleted(Model $model)
     {
-        foreach ($model->hydratedImages as $imageAttributeKey => $image) {
-            if ($image instanceof Image) {
-                $model->imageUpdatePath($image);
-                $image->flush();
-            }
+        if (in_array(SoftDeletes::class, class_uses_recursive($model)) && !$model->isForceDeleting()) {
+            return;
+        }
+
+        foreach ($model->getEloquentImageryImages() as $image) {
+            $image->removeOnFlush();
+            $image->flush();
         }
     }
 }

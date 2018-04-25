@@ -33,13 +33,4 @@ class EloquentImageryProvider extends ServiceProvider
             Blade::directive('placeholderImageUrl', [View\BladeDirectives::class, 'placeholderImageUrl']);
         }
     }
-
-    /*
-    private function checkPrequisites()
-    {
-        if (!$this->app->runningInConsole() && !extension_loaded('imagick') && !class_exists(InterventionImage::class)) {
-            throw new \RuntimeException('Eloquent Imagery requires ext/ImageMagick and Intervention/Image in order to render images');
-        }
-    }
-    */
 }

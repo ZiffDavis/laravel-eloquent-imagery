@@ -10,10 +10,11 @@ use Illuminate\Support\Facades\Storage;
 
 class Image implements \JsonSerializable
 {
-    protected $model = null;
     protected $attribute = null;
     protected $path = '';
     protected $filesystem;
+
+    protected $model = null;
 
     protected $extension = '';
     protected $width = null;
@@ -27,13 +28,16 @@ class Image implements \JsonSerializable
     protected $data = null;
     protected $remove = null;
 
-    public function __construct(Model $model, $attribute, $path, $filesystem)
+    public function __construct($attribute, $path, $filesystem)
     {
-        $this->model = $model;
         $this->attribute = $attribute;
         $this->path = $path;
         $this->filesystem = $filesystem;
-        $this->unserializeFromModel();
+    }
+
+    public function setModel(Model $model)
+    {
+        $this->model = $model;
     }
 
     public function exists()
@@ -94,12 +98,12 @@ class Image implements \JsonSerializable
 
         $this->exists = true;
     }
-
-    public function serializeToModel()
-    {
-        $attributes = $this->model->getAttributes();
-        $attributes[$this->attribute] = $this->getSerializedAttributeValue();
-    }
+    //
+    // public function serializeToModel()
+    // {
+    //     $attributes = $this->model->getAttributes();
+    //     $attributes[$this->attribute] = $this->getSerializedAttributeValue();
+    // }
 
     public function getSerializedAttributeValue()
     {

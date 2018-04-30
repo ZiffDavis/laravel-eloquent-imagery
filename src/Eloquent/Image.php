@@ -11,11 +11,12 @@ use Illuminate\Support\Facades\Storage;
 class Image implements \JsonSerializable
 {
     protected $attribute = null;
-    protected $path = '';
+    protected $pathTemplate = null;
     protected $filesystem;
 
     protected $model = null;
 
+    protected $path = '';
     protected $extension = '';
     protected $width = null;
     protected $height = null;
@@ -26,12 +27,12 @@ class Image implements \JsonSerializable
     protected $exists = false;
     protected $flush = false;
     protected $data = null;
-    protected $remove = null;
+    protected $removeAtPathOnFlush = null;
 
-    public function __construct($attribute, $path, $filesystem)
+    public function __construct($attribute, $pathTemplate, $filesystem)
     {
         $this->attribute = $attribute;
-        $this->path = $path;
+        $this->pathTemplate = $pathTemplate;
         $this->filesystem = $filesystem;
     }
 
@@ -53,9 +54,6 @@ class Image implements \JsonSerializable
             throw new \RuntimeException('Cannot process render options unless the rendering route is enabled');
         }
 
-        // $forceUnmodifiedImageRendering = config('eloquent_imagery.render.force_unmodified_image_rendering');
-
-        // || (!$modifiers && $forceUnmodifiedImageRendering === false)
         if ($renderRouteEnabled === false) {
             return Storage::disk($this->filesystem)->url($this->path);
         }
@@ -98,15 +96,13 @@ class Image implements \JsonSerializable
 
         $this->exists = true;
     }
-    //
-    // public function serializeToModel()
-    // {
-    //     $attributes = $this->model->getAttributes();
-    //     $attributes[$this->attribute] = $this->getSerializedAttributeValue();
-    // }
 
     public function getSerializedAttributeValue()
     {
+        if ($this->path == '') {
+            return null;
+        }
+
         return json_encode([
             'path' => $this->path,
             'extension' => $this->extension,
@@ -137,7 +133,7 @@ class Image implements \JsonSerializable
     public function setData($data)
     {
         if ($this->path && app('filesystem')->disk($this->filesystem)->exists($this->path)) {
-            $this->remove = $this->path;
+            $this->removeAtPathOnFlush = $this->path;
         }
 
         static $fInfo = null;
@@ -160,6 +156,7 @@ class Image implements \JsonSerializable
             throw new \InvalidArgumentException('Mime type could not be discovered');
         }
 
+        $this->path = $this->pathTemplate;
         $this->flush = true;
         $this->data = $data;
         $this->width = $width;
@@ -211,29 +208,43 @@ class Image implements \JsonSerializable
         return (bool) preg_match('#{(\w+)}#', $this->path);
     }
 
-    public function removeOnFlush()
+    public function remove()
     {
-        $this->remove = $this->path;
+        if ($this->path == '') {
+            throw new \RuntimeException('Called remove on an image that has no path');
+        }
+        $this->removeAtPathOnFlush = $this->path;
+
+        $this->path = '';
+        $this->extension = '';
+        $this->width = null;
+        $this->height = null;
+        $this->hash = '';
+        $this->timestamp = 0;
+        $this->metadata = [];
     }
 
     public function flush()
     {
-        /** @var Filesystem $filesystem */
-        $filesystem = app('filesystem')->disk($this->filesystem);
-
-        if ($this->remove) {
-            $filesystem->delete($this->remove);
-            $this->remove = null;
-        }
         if (!$this->flush) {
             return;
         }
+
+        /** @var Filesystem $filesystem */
+        $filesystem = app('filesystem')->disk($this->filesystem);
+
+        if ($this->removeAtPathOnFlush) {
+            $filesystem->delete($this->removeAtPathOnFlush);
+            $this->remove = null;
+        }
+
         if ($this->data) {
-            if (strpos($this->path, '{') !== false) {
-                throw new \RuntimeException('The image path still has an unresolved replacement in it ("{") and cannot be saved: ' . $this->path);
+            if ($this->pathHasReplacements()) {
+                throw new \RuntimeException('The image path still has an unresolved replacement in it ("{...}") and cannot be saved: ' . $this->path);
             }
             $filesystem->put($this->path, $this->data);
         }
+
         $this->flush = false;
     }
 

@@ -52,6 +52,9 @@ class EloquentImageryObserver
         $model->eloquentImageryRestoreImagesToAttributes();
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Model|\ZiffDavis\Laravel\EloquentImagery\Eloquent\HasEloquentImagery $model
+     */
     public function deleted(Model $model)
     {
         if (in_array(SoftDeletes::class, class_uses_recursive($model)) && !$model->isForceDeleting()) {
@@ -59,8 +62,10 @@ class EloquentImageryObserver
         }
 
         foreach ($model->getEloquentImageryImages() as $image) {
-            $image->removeOnFlush();
-            $image->flush();
+            if ($image->exists()) {
+                $image->remove();
+                $image->flush();
+            }
         }
     }
 }

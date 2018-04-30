@@ -60,6 +60,9 @@ trait HasEloquentImagery
         // @todo attribute as a collection of images
     }
 
+    /**
+     * @return \ZiffDavis\Laravel\EloquentImagery\Eloquent\Image[]
+     */
     public function getEloquentImageryImages()
     {
         return $this->eloquentImageryImages;

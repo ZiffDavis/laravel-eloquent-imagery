@@ -258,9 +258,13 @@ class Image implements \JsonSerializable
 
     public function jsonSerialize()
     {
-        return [
-            'url' => $this->getUrl(),
-            'meta' => $this->metadata
-        ];
+        if ($this->exists) {
+            return [
+                'url' => $this->url(),
+                'meta' => $this->metadata
+            ];
+        }
+
+        return null;
     }
 }

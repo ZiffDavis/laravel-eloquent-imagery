@@ -22,42 +22,32 @@ trait HasEloquentImagery
 
     public function eloquentImagery($attribute, $path = null, $filesystem = null)
     {
+        $this->eloquentImageryInitializeImage(Image::class, $attribute, $path, $filesystem);
+    }
+
+    public function eloquentImageryCollection($attribute, $path = null, $filesystem = null)
+    {
+        $this->eloquentImageryInitializeImage(ImageCollection::class, $attribute, $path, $filesystem);
+    }
+
+    protected function eloquentImageryInitializeImage($class, $attribute, $path, $filesystem)
+    {
         if (!isset(static::$eloquentImageryPrototypes[$attribute])) {
             if (!$path) {
-                $path = Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}";
+                $path = ($class === ImageCollection::class)
+                    ? Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}-{index}.{extension}"
+                    : Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}";
             }
 
-            $filesystem = $filesystem ?? config('eloquent_imagery.filesystem', config('filesystems.default'));
-            static::$eloquentImageryPrototypes[$attribute] = new Image($attribute, $path, $filesystem);
+            if (!$filesystem) {
+                $filesystem = config('eloquent_imagery.filesystem', config('filesystems.default'));
+            }
+
+            static::$eloquentImageryPrototypes[$attribute] = new $class($attribute, $path, $filesystem);
         }
 
-        $image = clone static::$eloquentImageryPrototypes[$attribute];
-
-        // set the image as the attribute so that it cavn be accessed on new instances via attribute accessor
-        $this->eloquentImageryImages[$attribute] = $this->attributes[$attribute] = $image;
-
-        $this->attributes[$attribute]->setModel($this);
-    }
-
-    public function eloquentImagerySerialize()
-    {
-        foreach ($this->eloquentImageryImages as $attribute => $image) {
-            $this->attributes[$attribute] = $image->getSerializedAttributeValue();
-        }
-    }
-
-
-
-    public function eloquentImageryRestoreImagesToAttributes()
-    {
-        foreach ($this->eloquentImageryImages as $attribute => $image) {
-            $this->attributes[$attribute] = $image;
-        }
-    }
-
-    public function eloquentImageryCollection()
-    {
-        // @todo attribute as a collection of images
+        // set the image as the attribute so that it can be accessed on new instances via attribute accessor
+        $this->eloquentImageryImages[$attribute] = $this->attributes[$attribute] = clone static::$eloquentImageryPrototypes[$attribute];
     }
 
     /**

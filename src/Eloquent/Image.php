@@ -8,13 +8,14 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * @property-read \ArrayObject $metadata
+ */
 class Image implements \JsonSerializable
 {
     protected $attribute = null;
     protected $pathTemplate = null;
     protected $filesystem;
-
-    protected $model = null;
 
     protected $path = '';
     protected $extension = '';
@@ -22,7 +23,8 @@ class Image implements \JsonSerializable
     protected $height = null;
     protected $hash = '';
     protected $timestamp = 0;
-    protected $metadata = [];
+    /** @var \ArrayObject */
+    protected $metadata = null;
 
     protected $exists = false;
     protected $flush = false;
@@ -34,11 +36,7 @@ class Image implements \JsonSerializable
         $this->attribute = $attribute;
         $this->pathTemplate = $pathTemplate;
         $this->filesystem = $filesystem;
-    }
-
-    public function setModel(Model $model)
-    {
-        $this->model = $model;
+        $this->metadata = new \ArrayObject([], \ArrayObject::ARRAY_AS_PROPS);
     }
 
     public function exists()
@@ -76,42 +74,29 @@ class Image implements \JsonSerializable
         return url()->route('eloquent_imagery.render', $pathWithModifiers);
     }
 
-    public function unserializeFromModel()
+    public function setStateProperties($properties)
     {
-        $properties = $this->model->getAttributeValue($this->attribute);
-
-        if ($properties == '') {
-            return;
-        }
-
-        if (is_string($properties)) {
-            $properties = json_decode($properties, true);
-        }
-
-        foreach ($properties as $n => $v) {
-            if (property_exists($this, $n)) {
-                $this->{$n} = $v;
-            }
-        }
-
+        $this->path = $properties['path'];
+        $this->extension = $properties['extension'];
+        $this->width = $properties['width'];
+        $this->height = $properties['height'];
+        $this->hash = $properties['hash'];
+        $this->timestamp = $properties['timestamp'];
+        $this->metadata->exchangeArray($properties['metadata']);
         $this->exists = true;
     }
 
-    public function getSerializedAttributeValue()
+    public function getStateProperties()
     {
-        if ($this->path == '') {
-            return null;
-        }
-
-        return json_encode([
+        return [
             'path' => $this->path,
             'extension' => $this->extension,
             'width' => $this->width,
             'height' => $this->height,
             'hash' => $this->hash,
             'timestamp' => $this->timestamp,
-            'metadata' => $this->metadata
-        ]);
+            'metadata' => $this->metadata->getArrayCopy()
+        ];
     }
 
     public function fromRequest($request = null)
@@ -179,10 +164,10 @@ class Image implements \JsonSerializable
         }
     }
 
-    public function updatePath()
+    public function updatePath(Model $model = null, $fromTemplate = false)
     {
         $pathReplacements = [];
-        $path = $this->path;
+        $path = ($fromTemplate) ? $this->pathTemplate : $this->path;
         preg_match_all('#{(\w+)}#', $path, $pathReplacements);
 
         foreach ($pathReplacements[1] as $pathReplacement) {
@@ -194,8 +179,8 @@ class Image implements \JsonSerializable
                 $path = str_replace("{{$pathReplacement}}", $this->metadata[$pathReplacement], $path);
                 continue;
             }
-            if ($this->model->offsetExists($pathReplacement) && $this->model->offsetGet($pathReplacement) != '') {
-                $path = str_replace("{{$pathReplacement}}", $this->model->offsetGet($pathReplacement), $path);
+            if ($model && $model->offsetExists($pathReplacement) && $model->offsetGet($pathReplacement) != '') {
+                $path = str_replace("{{$pathReplacement}}", $model->offsetGet($pathReplacement), $path);
                 continue;
             }
         }
@@ -213,6 +198,7 @@ class Image implements \JsonSerializable
         if ($this->path == '') {
             throw new \RuntimeException('Called remove on an image that has no path');
         }
+        $this->flush = true;
         $this->removeAtPathOnFlush = $this->path;
 
         $this->path = '';
@@ -221,7 +207,7 @@ class Image implements \JsonSerializable
         $this->height = null;
         $this->hash = '';
         $this->timestamp = 0;
-        $this->metadata = [];
+        $this->metadata->exchangeArray([]);
     }
 
     public function flush()
@@ -250,6 +236,10 @@ class Image implements \JsonSerializable
 
     public function __get($name)
     {
+        if ($name === 'metadata') {
+            return $this->metadata;
+        }
+
         if (!in_array($name, ['exists', 'metadata'])) {
             throw new \OutOfBoundsException("Property $name is not accessible");
         }
@@ -266,5 +256,10 @@ class Image implements \JsonSerializable
         }
 
         return null;
+    }
+
+    public function __clone()
+    {
+        $this->metadata = clone $this->metadata;
     }
 }

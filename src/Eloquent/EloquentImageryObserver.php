@@ -4,18 +4,43 @@ namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use ReflectionProperty;
 
 class EloquentImageryObserver
 {
+    protected $attributeReflector = null;
+
+    public function __construct()
+    {
+        $this->attributeReflector = new ReflectionProperty(Model::class, 'attributes');
+        $this->attributeReflector->setAccessible(true);
+    }
+
     /**
      * @param \Illuminate\Database\Eloquent\Model|\ZiffDavis\Laravel\EloquentImagery\Eloquent\HasEloquentImagery $model
      */
     public function retrieved(Model $model)
     {
-        foreach ($model->getEloquentImageryImages() as $imageAttributeKey => $image) {
-            $image->unserializeFromModel();
+        $attributeImages = $model->getEloquentImageryImages();
+
+        $modelAttributes = $this->attributeReflector->getValue($model);
+
+        foreach ($attributeImages as $attribute => $image) {
+            $properties = $modelAttributes[$attribute];
+            $modelAttributes[$attribute] = $image;
+
+            if ($properties == '') {
+                continue;
+            }
+
+            if (is_string($properties)) {
+                $properties = json_decode($properties, true);
+            }
+
+            $image->setStateProperties($properties);
         }
-        $model->eloquentImageryRestoreImagesToAttributes();
+
+        $this->attributeReflector->setValue($model, $modelAttributes);
     }
 
     /**
@@ -23,7 +48,27 @@ class EloquentImageryObserver
      */
     public function saving(Model $model)
     {
-        $model->eloquentImagerySerialize();
+        $attributeImages = $model->getEloquentImageryImages();
+
+        $casts = $model->getCasts();
+
+        $modelAttributes = $this->attributeReflector->getValue($model);
+
+        foreach ($attributeImages as $attribute => $image) {
+            if ($image->pathHasReplacements()) {
+                $image->updatePath($model);
+            }
+
+            $imageState = $image->getStateProperties();
+
+            $value = (isset($casts[$attribute]) && $casts[$attribute] === 'json')
+                ? $imageState
+                : json_encode($imageState);
+
+            $modelAttributes[$attribute] = $value;
+        }
+
+        $this->attributeReflector->setValue($model, $modelAttributes);
     }
 
     /**
@@ -31,25 +76,42 @@ class EloquentImageryObserver
      */
     public function saved(Model $model)
     {
-        foreach ($model->getEloquentImageryImages() as $imageAttributeKey => $image) {
+        $attributeImages = $model->getEloquentImageryImages();
+
+        $errors = [];
+
+        $modelAttributes = $this->attributeReflector->getValue($model);
+
+        foreach ($attributeImages as $attribute => $image) {
             if ($image->pathHasReplacements()) {
-                $image->updatePath();
+
+                $image->updatePath($model);
 
                 if ($image->pathHasReplacements()) {
-                    throw new \RuntimeException('After saving row, image path still contains unresolvable path replacements');
+                    $errors[] = "After saving row, image for attribute {$attribute}'s path still contains unresolvable path replacements";
                 }
 
-                $value = $image->getSerializedAttributeValue();
+                $imageState = $image->getStateProperties();
+
+                $value = (isset($this->casts[$attribute]) && $this->casts[$attribute] === 'json')
+                    ? $imageState
+                    : json_encode($imageState);
 
                 $model->getConnection()
                     ->table($model->getTable())
                     ->where($model->getKeyName(), $model->getKey())
-                    ->update([$imageAttributeKey => $value]);
+                    ->update([$attribute => $value]);
             }
             $image->flush();
+
+            $modelAttributes[$attribute] = $image;
         }
 
-        $model->eloquentImageryRestoreImagesToAttributes();
+        $this->attributeReflector->setValue($model, $modelAttributes);
+
+        if ($errors) {
+            throw new \RuntimeException(implode('; ', $errors));
+        }
     }
 
     /**

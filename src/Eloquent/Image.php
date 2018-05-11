@@ -193,6 +193,11 @@ class Image implements \JsonSerializable
         return (bool) preg_match('#{(\w+)}#', $this->path);
     }
 
+    public function isFullyRemoved()
+    {
+        return ($this->flush === true && $this->removeAtPathOnFlush !== '' && $this->path === '');
+    }
+
     public function remove()
     {
         if ($this->path == '') {

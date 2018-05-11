@@ -17,6 +17,8 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
     protected $images = [];
     protected $autoinc = 1;
 
+    protected $deletedImages = [];
+
     public function __construct($attribute, $pathTemplate, $filesystem)
     {
         $this->attribute = $attribute;
@@ -58,6 +60,16 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
 
     public function offsetUnset($offset)
     {
+        if (!isset($this->images[$offset])) {
+            throw new \RuntimeException("Image does not exist at offset $offset");
+        }
+
+        // find image at offset, set to remove on flush
+        $image = $this->images[$offset];
+        $image->remove();
+
+        $this->deletedImages[] = $image;
+
         unset($this->images[$offset]);
     }
 
@@ -96,8 +108,21 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
         return false;
     }
 
+    public function purgeRemovedImages()
+    {
+        foreach ($this->images as $i => $image) {
+            if ($image->isFullyRemoved()) {
+                $this->deletedImages[] = $image;
+                unset($this->images[$i]);
+            }
+        }
+    }
+
     public function flush()
     {
+        foreach ($this->deletedImages as $image) {
+            $image->flush();
+        }
         foreach ($this->images as $image) {
             $image->flush();
         }

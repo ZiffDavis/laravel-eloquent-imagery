@@ -71,6 +71,69 @@ class Post extends Model
 }
 ```
 
+The default path template is generated inside the Model using:
+
+    Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}"
+
+(assuming `$this->getTable()` returns 'my_things' and
+`$this->getKeyName()` returns `id`, and `$attribute` is `image` would
+create an actual path template of: 
+
+    my_thing/{id}/image.{extension}
+
+To give an alternative path, use the 2nd parameter in the constructor call:
+
+    $this->eloquentImagery(
+        'image',
+        'my-thing/{uuid}.{extension} // uuid will be used from the $model->uuid attribute
+    );
+
+### Attaching an Image Collection To A Model
+
+An Image Collection is a ordered list of Image objects.  The collection
+itself when hydrated has images that are indexable starting at 0. Each
+collection has a concept of an *auto increment* number which is stored
+in the collection (and the collection's serialization) so that Image
+objects can take advantage of this in the path template.
+
+In the simplest use case, using a `json` column like in the direct image
+scenario above, add in the `HasEloquentImagery` trait as before, and 
+use the `eloquentImageryCollection` method at construction to setup
+the collection:
+
+```php
+use ZiffDavis\Laravel\EloquentImagery\Eloquent\HasEloquentImagery;
+
+class Post extends Model
+{
+    use HasEloquentImagery;
+
+    public function __construct(array $attributes = [])
+    {
+        $this->eloquentImageryCollection('images');
+
+        parent::__construct($attributes);
+    }
+}
+```
+
+The default path template is generated inside the Model using:
+
+    Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}-{index}.{extension}"
+
+(assuming `$this->getTable()` returns 'my_things' and
+`$this->getKeyName()` returns `id`, and `$attribute` is `images` would
+create an actual path template of: 
+
+    my_thing/{id}/images-{index}.{extension}
+
+To give an alternative path, use the 2nd parameter in the constructor call:
+
+    $this->eloquentImageryCollection(
+        'images',
+        'my-thing/{id}-{index}.{extension}
+    );
+
 ### Displaying An Image In A View
 
 The following blade syntax assumes $post is a Model of type Post with

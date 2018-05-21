@@ -142,6 +142,7 @@ class Image implements \JsonSerializable
         }
 
         $this->path = $this->pathTemplate;
+        $this->exists = true;
         $this->flush = true;
         $this->data = $data;
         $this->width = $width;
@@ -249,6 +250,19 @@ class Image implements \JsonSerializable
             throw new \OutOfBoundsException("Property $name is not accessible");
         }
         return $this->{$name};
+    }
+
+    public function toArray()
+    {
+        return [
+            'path' => $this->path,
+            'extension' => $this->extension,
+            'width' => $this->width,
+            'height' => $this->height,
+            'hash' => $this->hash,
+            'timestamp' => $this->timestamp,
+            'metadata' => $this->metadata->getArrayCopy()
+        ];
     }
 
     public function jsonSerialize()

@@ -233,6 +233,7 @@ This will allow for the dynamic (controller) route or static route (link to stor
 
 ## TODO
 
-- image collections support
+- support moving images as a result of updated path parts (attribute update, etc)
+- support cloning of images (copying for cloned models)
 - refactor the image "modifiers" to be extensible and more cohesive
 

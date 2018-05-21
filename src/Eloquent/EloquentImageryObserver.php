@@ -63,6 +63,11 @@ class EloquentImageryObserver
                 $image->purgeRemovedImages();
             }
 
+            if (!$image->exists()) {
+                $modelAttributes[$attribute] = null;
+                continue;
+            }
+
             $imageState = $image->getStateProperties();
 
             $value = (isset($casts[$attribute]) && $casts[$attribute] === 'json')

@@ -26,6 +26,11 @@ class EloquentImageryObserver
         $modelAttributes = $this->attributeReflector->getValue($model);
 
         foreach ($attributeImages as $attribute => $image) {
+            // in the case a model was retrieved and the image column was not returned
+            if (!isset($modelAttributes[$attribute])) {
+                continue;
+            }
+
             $properties = $modelAttributes[$attribute];
             $modelAttributes[$attribute] = $image;
 

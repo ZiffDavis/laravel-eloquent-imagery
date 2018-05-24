@@ -27,7 +27,7 @@ class EloquentImageryObserver
 
         foreach ($attributeImages as $attribute => $image) {
             // in the case a model was retrieved and the image column was not returned
-            if (!isset($modelAttributes[$attribute])) {
+            if (!array_key_exists($attribute, $modelAttributes)) {
                 continue;
             }
 

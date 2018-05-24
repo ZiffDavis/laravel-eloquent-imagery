@@ -26,6 +26,11 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
         $this->filesystem = $filesystem;
     }
 
+    public function exists()
+    {
+        return true;
+    }
+
     public function setModel(Model $model)
     {
         $this->model = $model;

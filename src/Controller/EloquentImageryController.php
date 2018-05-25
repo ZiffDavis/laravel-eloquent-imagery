@@ -111,7 +111,7 @@ class EloquentImageryController extends Controller
         $response = response()
             ->make($bytes)
             ->header('Content-type', $mimeType)
-            ->header('Cache-control', "max-age=$browserCacheMaxAge");
+            ->header('Cache-control', "public, max-age=$browserCacheMaxAge");
 
         if ($cacheEnabled) {
             Cache::put($path, $response, config('eloquent_imagery.render.caching.ttl', 60));

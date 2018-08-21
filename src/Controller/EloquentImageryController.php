@@ -91,8 +91,7 @@ class EloquentImageryController extends Controller
         }
 
         if (config('eloquent_imagery.render.fallback.enable')) {
-            $fallbackDisk = config('eloquent_imagery.render.fallback.filesystem');
-            $fallbackFilesystem = app(FilesystemManager::class)->disk($fallbackDisk);
+            $fallbackFilesystem = app(FilesystemManager::class)->disk(config('eloquent_imagery.render.fallback.filesystem'));
             try {
                 $bytes = $fallbackFilesystem->get($storagePath);
                 $mimeType = $fallbackFilesystem->getMimeType($storagePath);

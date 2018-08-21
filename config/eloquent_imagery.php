@@ -54,6 +54,27 @@ return [
         ],
 
         /**
+         * Fallback Filesystem Support
+         *
+         * (This too is very useful for dev and qa purposes)
+         */
+        'fallback' => [
+
+            /**
+             * enable fallback support (true or false only)
+             *
+             * (Useful for development environments where you want to do a secondary lookup
+             * for an image in, for example, an s3 bucket that is for production images)
+             */
+            'enable' => env('IMAGERY_RENDER_FALLBACK_ENABLE', false),
+
+            /**
+             * Which filesystem disk to use in order to test to see if a file exists
+             */
+            'filesystem' => env('IMAGERY_RENDER_FALLBACK_FILESYSTEM', 'imagery'),
+        ],
+
+        /**
          * Caching image (render, full response caching)
          */
         'caching' => [

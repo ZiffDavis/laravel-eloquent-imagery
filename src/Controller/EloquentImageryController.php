@@ -102,7 +102,7 @@ class EloquentImageryController extends Controller
                 $mimeType = $fallbackFilesystem->getMimeType($storagePath);
                 if (config('eloquent_imagery.render.fallback.mark_images')) {
                     $imageModifier = new ImageModifier();
-                    $imageBytes = $imageModifier->addFromProductionWatermark($imageBytes);
+                    $imageBytes = $imageModifier->addFromFallbackWatermark($imageBytes);
                 }
             } catch (FileNotFoundException $e) {
                 $imageBytes = null;

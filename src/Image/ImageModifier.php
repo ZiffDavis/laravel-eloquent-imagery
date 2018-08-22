@@ -180,7 +180,7 @@ class ImageModifier
         return $img->encode($encodeType, $this->quality)->__toString();
     }
 
-    public function addFromProductionWatermark($bytes)
+    public function addFromFallbackWatermark($bytes)
     {
         $imageManager = new ImageManager(['driver' => 'imagick']);
         $img = $imageManager->make($bytes);

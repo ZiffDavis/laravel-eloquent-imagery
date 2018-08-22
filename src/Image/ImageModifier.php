@@ -100,7 +100,7 @@ class ImageModifier
         $originaltype = $img->mime();
         $encodeType = str_replace(['image/', 'jpeg'], ['', 'jpg'], $originaltype);
 
-        if ($originaltype == "image/jpeg") {
+        if ($originaltype == 'image/jpeg') {
             $img->filter(new class implements FilterInterface {
                 public function applyFilter(InterventionImage $image) {
                     $core = $image->getCore();
@@ -176,6 +176,26 @@ class ImageModifier
         if ($this->grayscale) {
             $img->greyscale();
         }
+
+        return $img->encode($encodeType, $this->quality)->__toString();
+    }
+
+    public function addFromFallbackWatermark($bytes)
+    {
+        $imageManager = new ImageManager(['driver' => 'imagick']);
+        $img = $imageManager->make($bytes);
+        $originaltype = $img->mime();
+        $encodeType = str_replace(['image/', 'jpeg'], ['', 'jpg'], $originaltype);
+
+        $img->line(1, 1, $img->getWidth()-1, $img->getHeight()-1, function ($draw) {
+            $draw->color([128, 128, 128, 1]);
+            $draw->width(1);
+        });
+
+        $img->line(1, $img->getHeight()-1, $img->getWidth()-1, 1, function ($draw) {
+            $draw->color([128, 128, 128, 1]);
+            $draw->width(1);
+        });
 
         return $img->encode($encodeType, $this->quality)->__toString();
     }

@@ -3,7 +3,8 @@
 namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Filesystem\Filesystem;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -13,9 +14,12 @@ use Illuminate\Support\Facades\Storage;
  */
 class Image implements \JsonSerializable
 {
+    /** @var Filesystem */
+    protected static $filesystem = null;
+
     protected $attribute = null;
     protected $pathTemplate = null;
-    protected $filesystem;
+
 
     protected $path = '';
     protected $extension = '';
@@ -31,11 +35,14 @@ class Image implements \JsonSerializable
     protected $data = null;
     protected $removeAtPathOnFlush = null;
 
-    public function __construct($attribute, $pathTemplate, $filesystem)
+    public function __construct($attribute, $pathTemplate)
     {
+        if (!self::$filesystem) {
+            self::$filesystem = app(FilesystemManager::class)->disk(config('eloquent_imagery.filesystem', config('filesystems.default')));
+        }
+
         $this->attribute = $attribute;
         $this->pathTemplate = $pathTemplate;
-        $this->filesystem = $filesystem;
         $this->metadata = new \ArrayObject([], \ArrayObject::ARRAY_AS_PROPS);
     }
 
@@ -53,7 +60,7 @@ class Image implements \JsonSerializable
         }
 
         if ($renderRouteEnabled === false) {
-            return Storage::disk($this->filesystem)->url($this->path);
+            return self::$filesystem->url($this->path);
         }
 
         if ($modifiers) {
@@ -117,7 +124,7 @@ class Image implements \JsonSerializable
 
     public function setData($data)
     {
-        if ($this->path && app('filesystem')->disk($this->filesystem)->exists($this->path)) {
+        if ($this->path && self::$filesystem->exists($this->path)) {
             $this->removeAtPathOnFlush = $this->path;
         }
 
@@ -223,11 +230,8 @@ class Image implements \JsonSerializable
             return;
         }
 
-        /** @var Filesystem $filesystem */
-        $filesystem = app('filesystem')->disk($this->filesystem);
-
         if ($this->removeAtPathOnFlush) {
-            $filesystem->delete($this->removeAtPathOnFlush);
+            self::$filesystem->delete($this->removeAtPathOnFlush);
             $this->remove = null;
         }
 
@@ -235,7 +239,7 @@ class Image implements \JsonSerializable
             if ($this->pathHasReplacements()) {
                 throw new \RuntimeException('The image path still has an unresolved replacement in it ("{...}") and cannot be saved: ' . $this->path);
             }
-            $filesystem->put($this->path, $this->data);
+            self::$filesystem->put($this->path, $this->data);
         }
 
         $this->flush = false;

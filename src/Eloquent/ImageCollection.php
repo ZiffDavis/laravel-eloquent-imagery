@@ -11,7 +11,6 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
 {
     protected $attribute = null;
     protected $pathTemplate = null;
-    protected $filesystem;
 
     /** @var Image[] */
     protected $images = [];
@@ -19,11 +18,10 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
 
     protected $deletedImages = [];
 
-    public function __construct($attribute, $pathTemplate, $filesystem)
+    public function __construct($attribute, $pathTemplate)
     {
         $this->attribute = $attribute;
         $this->pathTemplate = $pathTemplate;
-        $this->filesystem = $filesystem;
     }
 
     public function exists()
@@ -54,7 +52,7 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
     {
         if ($offset === null) {
             $offset = count($this->images);
-            $this->images[$offset] = $image = new Image($this->attribute, $this->pathTemplate, $this->filesystem);
+            $this->images[$offset] = $image = new Image($this->attribute, $this->pathTemplate);
             $image->metadata->index = $this->autoinc++;
         } else {
             $image = $this->images[$offset];
@@ -123,6 +121,13 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
         }
     }
 
+    public function remove()
+    {
+        foreach ($this->images as $image) {
+            $image->remove();
+        }
+    }
+
     public function flush()
     {
         foreach ($this->deletedImages as $image) {
@@ -143,7 +148,7 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
     public function setStateProperties(array $properties)
     {
         foreach ($properties['images'] as $imageState) {
-            $image = new Image($this->attribute, $this->pathTemplate, $this->filesystem);
+            $image = new Image($this->attribute, $this->pathTemplate);
             $image->setStateProperties($imageState);
             $this->images[] = $image;
         }

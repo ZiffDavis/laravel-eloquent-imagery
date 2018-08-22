@@ -8,6 +8,7 @@ use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
 use ZiffDavis\Laravel\EloquentImagery\Image\ImageModifier;
 use ZiffDavis\Laravel\EloquentImagery\Image\PlaceholderImageFactory;
 
@@ -77,49 +78,55 @@ class EloquentImageryController extends Controller
 
         // assume the mime type is PNG unless otherwise specified
         $mimeType = 'image/png';
+        $imageBytes = null;
 
+        // step 1: if placeholder request, generate a placeholder
         if ($filenameWithoutExtension === config('eloquent_imagery.render.placeholder.filename') && config('eloquent_imagery.render.placeholder.enable')) {
             list ($placeholderWidth, $placeholderHeight) = isset($modifierOperators['size']) ? explode('x', $modifierOperators['size']) : [400, 400];
-            $bytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);
-        } else {
+            $imageBytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);
+        }
+
+        // step 2: no placeholder, look for actual file on desiganted filesystem
+        if (!$imageBytes) {
             try {
-                $bytes = $filesystem->get($storagePath);
+                $imageBytes = $filesystem->get($storagePath);
                 $mimeType = $filesystem->getMimeType($storagePath);
             } catch (FileNotFoundException $e) {
-                $bytes = null;
+                $imageBytes = null;
             }
         }
 
         if (config('eloquent_imagery.render.fallback.enable')) {
             $fallbackFilesystem = app(FilesystemManager::class)->disk(config('eloquent_imagery.render.fallback.filesystem'));
             try {
-                $bytes = $fallbackFilesystem->get($storagePath);
+                $imageBytes = $fallbackFilesystem->get($storagePath);
                 $mimeType = $fallbackFilesystem->getMimeType($storagePath);
+                if (config('eloquent_imagery.render.fallback.mark_images')) {
+                    $imageModifier = new ImageModifier();
+                    $imageBytes = $imageModifier->addFromProductionWatermark($imageBytes);
+                }
             } catch (FileNotFoundException $e) {
-                $bytes = null;
+                $imageBytes = null;
             }
         }
 
-        if (!$bytes && config('eloquent_imagery.render.placeholder.use_for_missing_files') === true) {
+        if (!$imageBytes && config('eloquent_imagery.render.placeholder.use_for_missing_files') === true) {
             list ($placeholderWidth, $placeholderHeight) = isset($modifierOperators['size']) ? explode('x', $modifierOperators['size']) : [400, 400];
-            $bytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);
+            $imageBytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);
         }
 
-        // if there are no files that match, and placeholders are disabled give a 404
-        if (!$bytes) {
-            return abort(404);
-        }
+        abort_if(!$imageBytes, 404); // no image, no fallback, no placeholder
 
         $imageModifier = new ImageModifier();
         foreach ($modifierOperators as $operator => $arg) {
             call_user_func_array([$imageModifier, 'set' . ucfirst($operator)], [$arg]);
         }
-        $bytes = $imageModifier->modify($bytes);
+        $imageBytes = $imageModifier->modify($imageBytes);
 
         $browserCacheMaxAge = config('eloquent_imagery.render.browser_cache_max_age');
 
         $response = response()
-            ->make($bytes)
+            ->make($imageBytes)
             ->header('Content-type', $mimeType)
             ->header('Cache-control', "public, max-age=$browserCacheMaxAge");
 

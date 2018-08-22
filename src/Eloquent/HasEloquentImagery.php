@@ -12,7 +12,7 @@ trait HasEloquentImagery
     /** @var Image[] */
     protected static $eloquentImageryPrototypes = [];
 
-    /** @var Image[] */
+    /** @var Image[]|ImageCollection[] */
     protected $eloquentImageryImages = [];
 
     public static function bootHasEloquentImagery()
@@ -20,17 +20,17 @@ trait HasEloquentImagery
         static::observe(new EloquentImageryObserver());
     }
 
-    public function eloquentImagery($attribute, $path = null, $filesystem = null)
+    public function eloquentImagery($attribute, $path = null)
     {
-        $this->eloquentImageryInitializeImage(Image::class, $attribute, $path, $filesystem);
+        $this->eloquentImageryInitializeImage(Image::class, $attribute, $path);
     }
 
-    public function eloquentImageryCollection($attribute, $path = null, $filesystem = null)
+    public function eloquentImageryCollection($attribute, $path = null)
     {
-        $this->eloquentImageryInitializeImage(ImageCollection::class, $attribute, $path, $filesystem);
+        $this->eloquentImageryInitializeImage(ImageCollection::class, $attribute, $path);
     }
 
-    protected function eloquentImageryInitializeImage($class, $attribute, $path, $filesystem)
+    protected function eloquentImageryInitializeImage($class, $attribute, $path)
     {
         if (!isset(static::$eloquentImageryPrototypes[$attribute])) {
             if (!$path) {
@@ -39,11 +39,7 @@ trait HasEloquentImagery
                     : Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}";
             }
 
-            if (!$filesystem) {
-                $filesystem = config('eloquent_imagery.filesystem', config('filesystems.default'));
-            }
-
-            static::$eloquentImageryPrototypes[$attribute] = new $class($attribute, $path, $filesystem);
+            static::$eloquentImageryPrototypes[$attribute] = new $class($attribute, $path);
         }
 
         // set the image as the attribute so that it can be accessed on new instances via attribute accessor
@@ -51,7 +47,7 @@ trait HasEloquentImagery
     }
 
     /**
-     * @return \ZiffDavis\Laravel\EloquentImagery\Eloquent\Image[]
+     * @return Image[]|ImageCollection[]
      */
     public function getEloquentImageryImages()
     {

@@ -72,6 +72,11 @@ return [
              * Which filesystem disk to use in order to test to see if a file exists
              */
             'filesystem' => env('IMAGERY_RENDER_FALLBACK_FILESYSTEM', 'imagery'),
+
+            /**
+             * Enable marking of fallback sourced images
+             */
+            'mark_images' => env('IMAGERY_RENDER_FALLBACK_MARK_IMAGES', true),
         ],
 
         /**

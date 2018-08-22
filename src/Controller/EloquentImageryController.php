@@ -7,8 +7,6 @@ use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
 use ZiffDavis\Laravel\EloquentImagery\Image\ImageModifier;
 use ZiffDavis\Laravel\EloquentImagery\Image\PlaceholderImageFactory;
 

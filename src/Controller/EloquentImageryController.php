@@ -94,7 +94,8 @@ class EloquentImageryController extends Controller
             }
         }
 
-        if (config('eloquent_imagery.render.fallback.enable')) {
+        // step 3: no placeholder, no primary FS image, look for fallback image on alternative filesystem if enabled
+        if (!$imageBytes && config('eloquent_imagery.render.fallback.enable')) {
             $fallbackFilesystem = app(FilesystemManager::class)->disk(config('eloquent_imagery.render.fallback.filesystem'));
             try {
                 $imageBytes = $fallbackFilesystem->get($storagePath);
@@ -108,6 +109,7 @@ class EloquentImageryController extends Controller
             }
         }
 
+        // step 4: no placeholder, no primary FS image, no fallback, generate a placeholder if enabled for missing files
         if (!$imageBytes && config('eloquent_imagery.render.placeholder.use_for_missing_files') === true) {
             list ($placeholderWidth, $placeholderHeight) = isset($modifierOperators['size']) ? explode('x', $modifierOperators['size']) : [400, 400];
             $imageBytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);

@@ -197,16 +197,6 @@ class ImageModifier
             $draw->width(1);
         });
 
-
-        // $img->text('COPY', 72, 60, function($font) {
-        //     $font->file(__DIR__ . '/../../fonts/Caitlin.ttf');
-        //     $font->size(50);
-        //     $font->color([255, 0, 0, 0.65]);
-        //     $font->align('center');
-        //     $font->valign('middle');
-        //     $font->angle(25);
-        // });
-
         return $img->encode($encodeType, $this->quality)->__toString();
     }
 }

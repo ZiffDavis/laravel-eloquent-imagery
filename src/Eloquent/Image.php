@@ -66,7 +66,8 @@ class Image implements \JsonSerializable
         if ($modifiers) {
             $modifierParts = explode('|', $modifiers);
             sort($modifierParts);
-            $modifiers = implode('_', $modifierParts);
+            $modifiers = implode('.', $modifierParts);
+            $modifiers = str_replace(':', '_', $modifiers);
         }
 
         // keyed with [dirname, filename, basename, extension]

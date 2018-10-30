@@ -18,13 +18,13 @@ class EloquentImageryController extends Controller
      * @var array
      */
     protected $urlOperators = [
-        'size'      => '/^size:([0-9]+x[0-9]+)$/', // set width
-        'fit'       => '/^fit:([a-z]+)$/', // set height
+        'size'      => '/^size_([0-9]+x[0-9]+)$/', // set width
+        'fit'       => '/^fit_([a-z]+)$/', // set height
         'grayscale' => '/^grayscale$/', // grayscale
-        'quality'   => '/^quality:([0-9])+/', //quality, if applicable
-        'bgcolor'   => '/^bg:([\da-f]{6})$/', // background hex
-        'trim'      => '/^trim:(\d+)$/', // trim, tolerance
-        'crop'      => '/^crop:([\d,?]+)$/' // crop operations
+        'quality'   => '/^quality_([0-9])+/', //quality, if applicable
+        'bgcolor'   => '/^bg_([\da-f]{6})$/', // background hex
+        'trim'      => '/^trim_(\d+)$/', // trim, tolerance
+        'crop'      => '/^crop_([\d,?]+)$/' // crop operations
     ];
 
     public function render($path)
@@ -51,10 +51,11 @@ class EloquentImageryController extends Controller
         $filenameWithoutExtension = $pathinfo['filename'];
 
         if (strpos($filenameWithoutExtension, '.') !== false) {
-            $filenameWithoutExtension = pathinfo($filenameWithoutExtension, PATHINFO_FILENAME);
+            $filenameParts = explode(".", $filenameWithoutExtension);
+            $filenameWithoutExtension = $filenameParts[0];
             $storagePath .= "{$filenameWithoutExtension}.{$pathinfo['extension']}";
 
-            $modifierSpecs = explode('_', pathinfo($pathinfo['filename'], PATHINFO_EXTENSION));
+            $modifierSpecs = array_slice($filenameParts, 1);
 
             foreach ($modifierSpecs as $modifierSpec) {
                 $matches = [];

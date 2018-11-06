@@ -21,7 +21,7 @@ class EloquentImageryController extends Controller
         'size'      => '/^size_([0-9]+x[0-9]+)$/', // set width
         'fit'       => '/^fit_([a-z]+)$/', // set height
         'grayscale' => '/^grayscale$/', // grayscale
-        'quality'   => '/^quality_([0-9])+/', //quality, if applicable
+        'quality'   => '/^quality_([0-9]+)/', //quality, if applicable
         'bgcolor'   => '/^bg_([\da-f]{6})$/', // background hex
         'trim'      => '/^trim_(\d+)$/', // trim, tolerance
         'crop'      => '/^crop_([\d,?]+)$/' // crop operations

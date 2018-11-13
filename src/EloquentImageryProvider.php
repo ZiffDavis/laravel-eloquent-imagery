@@ -28,7 +28,8 @@ class EloquentImageryProvider extends ServiceProvider
 
             $router->get("{$imageRoute}/{path}", Controller\EloquentImageryController::class . '@render')
                 ->where('path', '(.*)')
-                ->name('eloquent_imagery.render');
+                ->name('eloquent_imagery.render')
+                ->domain(config('eloquent_imagery.render.domain', null));
 
             Blade::directive('placeholderImageUrl', [View\BladeDirectives::class, 'placeholderImageUrl']);
         }

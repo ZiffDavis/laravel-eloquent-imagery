@@ -19,9 +19,14 @@ return [
         'enable' => true,
 
         /**
-         * with path to respond to
+         * which path to respond to
          */
         'path' => '/imagery',
+
+        /**
+         * optionally bind the route to a specific domain (ex: for a CDN)
+         */
+        'domain' => env('IMAGERY_RENDER_DOMAIN', null),
 
         /**
          * Placeholder Support

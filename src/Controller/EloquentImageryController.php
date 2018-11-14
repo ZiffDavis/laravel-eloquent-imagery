@@ -18,7 +18,7 @@ class EloquentImageryController extends Controller
      * @var array
      */
     protected $urlOperators = [
-        'size'      => '/^size_([0-9]+x[0-9]+)$/', // set width
+        'size'      => '/^size:([0-9]*x[0-9]*)$/', // set width
         'fit'       => '/^fit_([a-z]+)$/', // set height
         'grayscale' => '/^grayscale$/', // grayscale
         'quality'   => '/^quality_([0-9]+)/', //quality, if applicable

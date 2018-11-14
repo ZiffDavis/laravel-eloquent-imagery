@@ -139,8 +139,8 @@ class ImageModifier
 
         switch ($this->fit) {
             case self::FIT_PAD_LIMIT:
-                $canvasHeight = $this->height ?? $img->height();
-                $canvasWidth = $this->width ?? $img->width();
+                $canvasHeight = $this->height ?: $img->height();
+                $canvasWidth = $this->width ?: $img->width();
                 $canvas = $imageManager->canvas($canvasWidth, $canvasHeight, $this->bgcolor);
                 $img->heighten($canvasHeight, function(Constraint $c) {
                     $c->upsize();
@@ -152,8 +152,8 @@ class ImageModifier
                 $img = $canvas;
                 break;
             case self::FIT_LIMIT:
-                $height = $this->height ?? $img->height();
-                $width = $this->width ?? $img->width();
+                $height = $this->height ?: $img->height();
+                $width = $this->width ?: $img->width();
                 $img->heighten($height, function(Constraint $c) {
                     $c->upsize();
                 });
@@ -162,9 +162,9 @@ class ImageModifier
                 });
                 break;
             case self::FIT_SCALE:
-                $height = $this->height ?? $img->height();
-                $width = $this->width ?? $img->width();
-                $img->resize($this->width, $this->height, function(Constraint $c) {
+                $height = $this->height ?: $img->height();
+                $width = $this->width ?: $img->width();
+                $img->resize($width, $height, function(Constraint $c) {
                     $c->aspectRatio();
                 });
                 break;

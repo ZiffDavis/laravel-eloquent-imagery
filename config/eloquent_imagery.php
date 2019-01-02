@@ -82,6 +82,11 @@ return [
              * Enable marking of fallback sourced images
              */
             'mark_images' => env('IMAGERY_RENDER_FALLBACK_MARK_IMAGES', true),
+
+            /**
+             * Download images to the default imagery filsystem after first fallback
+             */
+            'download_images' => env('IMAGERY_RENDER_FALLBACK_DOWNLOAD_IMAGES', false),
         ],
 
         /**

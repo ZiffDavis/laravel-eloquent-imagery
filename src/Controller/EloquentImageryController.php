@@ -29,10 +29,11 @@ class EloquentImageryController extends Controller
 
     public function render($path)
     {
-        $cacheEnabled = config('eloquent_imagery.caching.enable', false);
+        $cacheEnabled = config('eloquent_imagery.render.caching.enable', false);
+        $cacheDriver = config('eloquent_imagery.render.caching.driver', 'disk');
 
         if ($cacheEnabled && Cache::has($path)) {
-            return Cache::get($path);
+            return Cache::store($cacheDriver)->get($path);
         }
 
         // Path traversal detection: 404 the user, no need to give additional information
@@ -132,7 +133,7 @@ class EloquentImageryController extends Controller
             ->header('Cache-control', "public, max-age=$browserCacheMaxAge");
 
         if ($cacheEnabled) {
-            Cache::put($path, $response, config('eloquent_imagery.render.caching.ttl', 60));
+            Cache::store($cacheDriver)->put($path, $response, config('eloquent_imagery.render.caching.ttl', 60));
         }
 
         return $response;

@@ -96,7 +96,7 @@ return [
             /**
              * Which driver to use for caching
              */
-            'driver' => env('IMAGERY_RENDER_CACHING_DRIVER', 'disk'),
+            'driver' => env('IMAGERY_RENDER_CACHING_DRIVER', 'file'),
 
             /**
              * Header TTL

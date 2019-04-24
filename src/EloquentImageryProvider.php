@@ -6,6 +6,9 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Intervention\Image\Image as InterventionImage;
+use Laravel\Nova\Events\ServingNova;
+use Laravel\Nova\Nova;
+use Laravel\Nova\NovaCoreServiceProvider;
 
 class EloquentImageryProvider extends ServiceProvider
 {
@@ -32,6 +35,13 @@ class EloquentImageryProvider extends ServiceProvider
                 ->domain(config('eloquent_imagery.render.domain', null));
 
             Blade::directive('placeholderImageUrl', [View\BladeDirectives::class, 'placeholderImageUrl']);
+        }
+
+        if (!empty($this->app->getProviders(NovaCoreServiceProvider::class))) {
+            Nova::serving(function (ServingNova $event) {
+                Nova::script('eloquent-imagery', __DIR__.'/../dist/js/component.js');
+                // Nova::style('eloquent-imagery', __DIR__.'/../dist/css/component.css');
+            });
         }
     }
 }

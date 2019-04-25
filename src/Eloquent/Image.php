@@ -38,7 +38,7 @@ class Image implements \JsonSerializable
     public function __construct($attribute, $pathTemplate)
     {
         if (!self::$filesystem) {
-            self::$filesystem = app(FilesystemManager::class)->disk(config('eloquent_imagery.filesystem', config('filesystems.default')));
+            self::$filesystem = app(FilesystemManager::class)->disk(config('eloquent-imagery.filesystem', config('filesystems.default')));
         }
 
         $this->attribute = $attribute;
@@ -53,7 +53,7 @@ class Image implements \JsonSerializable
 
     public function url($modifiers = null)
     {
-        $renderRouteEnabled = config('eloquent_imagery.render.enable');
+        $renderRouteEnabled = config('eloquent-imagery.render.enable');
 
         if ($renderRouteEnabled === false && $modifiers) {
             throw new \RuntimeException('Cannot process render options unless the rendering route is enabled');
@@ -79,7 +79,7 @@ class Image implements \JsonSerializable
             . ($modifiers ? ".{$modifiers}" : '')
             . ".{$pathinfo['extension']}";
 
-        return url()->route('eloquent_imagery.render', $pathWithModifiers);
+        return url()->route('eloquent-imagery.render', $pathWithModifiers);
     }
 
     public function setStateProperties($properties)

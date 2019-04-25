@@ -29,8 +29,8 @@ class EloquentImageryController extends Controller
 
     public function render($path)
     {
-        $cacheEnabled = config('eloquent_imagery.render.caching.enable', false);
-        $cacheDriver = config('eloquent_imagery.render.caching.driver', 'disk');
+        $cacheEnabled = config('eloquent-imagery.render.caching.enable', false);
+        $cacheDriver = config('eloquent-imagery.render.caching.driver', 'disk');
 
         if ($cacheEnabled && Cache::has($path)) {
             return Cache::store($cacheDriver)->get($path);
@@ -39,7 +39,7 @@ class EloquentImageryController extends Controller
         // Path traversal detection: 404 the user, no need to give additional information
         abort_if((in_array($path[0], ['.', '/']) || strpos($path, '../') !== false), 404);
 
-        $disk = config('eloquent_imagery.filesystem', config('filesystems.default'));
+        $disk = config('eloquent-imagery.filesystem', config('filesystems.default'));
 
         /** @var Filesystem $filesystem */
         $filesystem = app(FilesystemManager::class)->disk($disk);
@@ -81,7 +81,7 @@ class EloquentImageryController extends Controller
         $imageBytes = null;
 
         // step 1: if placeholder request, generate a placeholder
-        if ($filenameWithoutExtension === config('eloquent_imagery.render.placeholder.filename') && config('eloquent_imagery.render.placeholder.enable')) {
+        if ($filenameWithoutExtension === config('eloquent-imagery.render.placeholder.filename') && config('eloquent-imagery.render.placeholder.enable')) {
             list ($placeholderWidth, $placeholderHeight) = isset($modifierOperators['size']) ? explode('x', $modifierOperators['size']) : [400, 400];
             $imageBytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);
         }
@@ -97,12 +97,12 @@ class EloquentImageryController extends Controller
         }
 
         // step 3: no placeholder, no primary FS image, look for fallback image on alternative filesystem if enabled
-        if (!$imageBytes && config('eloquent_imagery.render.fallback.enable')) {
-            $fallbackFilesystem = app(FilesystemManager::class)->disk(config('eloquent_imagery.render.fallback.filesystem'));
+        if (!$imageBytes && config('eloquent-imagery.render.fallback.enable')) {
+            $fallbackFilesystem = app(FilesystemManager::class)->disk(config('eloquent-imagery.render.fallback.filesystem'));
             try {
                 $imageBytes = $fallbackFilesystem->get($storagePath);
                 $mimeType = $fallbackFilesystem->getMimeType($storagePath);
-                if (config('eloquent_imagery.render.fallback.mark_images')) {
+                if (config('eloquent-imagery.render.fallback.mark_images')) {
                     $imageModifier = new ImageModifier();
                     $imageBytes = $imageModifier->addFromFallbackWatermark($imageBytes);
                 }
@@ -112,7 +112,7 @@ class EloquentImageryController extends Controller
         }
 
         // step 4: no placeholder, no primary FS image, no fallback, generate a placeholder if enabled for missing files
-        if (!$imageBytes && config('eloquent_imagery.render.placeholder.use_for_missing_files') === true) {
+        if (!$imageBytes && config('eloquent-imagery.render.placeholder.use_for_missing_files') === true) {
             list ($placeholderWidth, $placeholderHeight) = isset($modifierOperators['size']) ? explode('x', $modifierOperators['size']) : [400, 400];
             $imageBytes = (new PlaceholderImageFactory())->create($placeholderWidth, $placeholderHeight, $modifierOperators['bgcolor'] ?? null);
         }
@@ -125,7 +125,7 @@ class EloquentImageryController extends Controller
         }
         $imageBytes = $imageModifier->modify($imageBytes);
 
-        $browserCacheMaxAge = config('eloquent_imagery.render.browser_cache_max_age');
+        $browserCacheMaxAge = config('eloquent-imagery.render.browser_cache_max_age');
 
         $response = response()
             ->make($imageBytes)
@@ -133,7 +133,7 @@ class EloquentImageryController extends Controller
             ->header('Cache-control', "public, max-age=$browserCacheMaxAge");
 
         if ($cacheEnabled) {
-            Cache::store($cacheDriver)->put($path, $response, config('eloquent_imagery.render.caching.ttl', 60));
+            Cache::store($cacheDriver)->put($path, $response, config('eloquent-imagery.render.caching.ttl', 60));
         }
 
         return $response;

@@ -52,8 +52,8 @@ create a `json` column in a migration to handle this image:
 $table->json('image')->nullable();
 ```
 
-Next, in the model, add in the HasEloquentImagery trait and a method
-named *the same as the column* like:
+Next, in the model, add in the HasEloquentImagery trait and configure a class
+property called `$eloquentImagery` like so:
 
 ```php
 use ZiffDavis\Laravel\EloquentImagery\Eloquent\HasEloquentImagery;
@@ -62,31 +62,11 @@ class Post extends Model
 {
     use HasEloquentImagery;
 
-    public function __construct(array $attributes = [])
-    {
-        $this->eloquentImagery('image');
-
-        parent::__construct($attributes);
-    }
+    protected $eloquentImagery = [
+        'image' => 'posts/{id}.{extension}',
+    ];
 }
 ```
-
-The default path template is generated inside the Model using:
-
-    Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}"
-
-(assuming `$this->getTable()` returns 'my_things' and
-`$this->getKeyName()` returns `id`, and `$attribute` is `image` would
-create an actual path template of: 
-
-    my_thing/{id}/image.{extension}
-
-To give an alternative path, use the 2nd parameter in the constructor call:
-
-    $this->eloquentImagery(
-        'image',
-        'my-thing/{uuid}.{extension} // uuid will be used from the $model->uuid attribute
-    );
 
 ### Attaching an Image Collection To A Model
 
@@ -108,31 +88,14 @@ class Post extends Model
 {
     use HasEloquentImagery;
 
-    public function __construct(array $attributes = [])
-    {
-        $this->eloquentImageryCollection('images');
-
-        parent::__construct($attributes);
-    }
+    protected $eloquentImagery = [
+        'images' => [
+            'path' => 'post/{id}/image-{index}.{extension}',
+            'collection' => true
+        ],
+    ];
 }
 ```
-
-The default path template is generated inside the Model using:
-
-    Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}-{index}.{extension}"
-
-(assuming `$this->getTable()` returns 'my_things' and
-`$this->getKeyName()` returns `id`, and `$attribute` is `images` would
-create an actual path template of: 
-
-    my_thing/{id}/images-{index}.{extension}
-
-To give an alternative path, use the 2nd parameter in the constructor call:
-
-    $this->eloquentImageryCollection(
-        'images',
-        'my-thing/{id}-{index}.{extension}
-    );
 
 ### Displaying An Image In A View
 
@@ -237,3 +200,9 @@ This will allow for the dynamic (controller) route or static route (link to stor
 - support cloning of images (copying for cloned models)
 - refactor the image "modifiers" to be extensible and more cohesive
 
+## Updating
+
+### Updating to 0.5.0
+
+- make sure to rename the `config/eloquent_imagery.php` to config/eloquent-imagery.php`, probably a good idea to re-copy the original (or publish again).
+- see the new method of configuring a model to use an image: use a property called `$eloqentImagery`

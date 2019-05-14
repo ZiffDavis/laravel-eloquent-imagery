@@ -5,7 +5,7 @@ namespace ZiffDavis\Laravel\EloquentImagery\Nova;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\FilesystemManager;
 use Laravel\Nova\Fields\Image as ImageField;
-use Laravel\Nova\Http\Requests\Nova\Request;
+use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource;
 use ZiffDavis\Laravel\EloquentImagery\Eloquent\Image;
 
@@ -48,7 +48,7 @@ class EloquentImageryField extends ImageField
             return $eloquentImageryImage->url($this->thumbnailUrlModifiers);
         });
 
-        $this->delete(function (Request $request, Model $model) {
+        $this->delete(function (NovaRequest $request, Model $model) {
             /** @var Image $eloquentImageryImage */
             $eloquentImageryImage = $model->{$this->attribute};
 

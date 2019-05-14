@@ -48,7 +48,7 @@ class EloquentImageryField extends ImageField
             return $eloquentImageryImage->url($this->thumbnailUrlModifiers);
         });
 
-        $this->delete(function (Request $request, Model $model) {
+        $this->delete(function (NovaRequest $request, Model $model) {
             /** @var Image $eloquentImageryImage */
             $eloquentImageryImage = $model->{$this->attribute};
 

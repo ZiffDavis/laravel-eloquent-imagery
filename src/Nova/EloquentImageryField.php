@@ -5,7 +5,7 @@ namespace ZiffDavis\Laravel\EloquentImagery\Nova;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\FilesystemManager;
 use Laravel\Nova\Fields\Image as ImageField;
-use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Http\Requests\Nova\Request;
 use Laravel\Nova\Resource;
 use ZiffDavis\Laravel\EloquentImagery\Eloquent\Image;
 

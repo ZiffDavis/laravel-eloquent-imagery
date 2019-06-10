@@ -101,18 +101,7 @@ class ImageModifier
         $encodeType = str_replace(['image/', 'jpeg'], ['', 'jpg'], $originaltype);
 
         if ($originaltype == 'image/jpeg') {
-            $img->filter(new class implements FilterInterface {
-                public function applyFilter(InterventionImage $image) {
-                    $core = $image->getCore();
-                    if ($core instanceof \Imagick) {
-                        $core->stripImage();
-                        if ($core->getImageColorspace() == \Imagick::COLORSPACE_CMYK) {
-                            $core->transformImageColorspace(\Imagick::COLORSPACE_RGB);
-                        }
-                    }
-                    return $image;
-                }
-            });
+            $img->filter(new Filters\JpegNormalizationFilter);
             /** @var \Imagick $core */
             $core = $img->getCore();
             $core->setSamplingFactors(['2x2', '1x1', '1x1']);

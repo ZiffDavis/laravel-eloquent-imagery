@@ -275,8 +275,8 @@ class Image implements \JsonSerializable
     {
         if ($this->exists) {
             return [
-                'url' => $this->url(),
-                'meta' => $this->metadata
+                'url'      => $this->url(),
+                'metadata' => $this->metadata
             ];
         }
 

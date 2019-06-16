@@ -17,9 +17,7 @@ class Image implements \JsonSerializable
     /** @var Filesystem */
     protected static $filesystem = null;
 
-    protected $attribute = null;
     protected $pathTemplate = null;
-
 
     protected $path = '';
     protected $extension = '';
@@ -35,13 +33,12 @@ class Image implements \JsonSerializable
     protected $data = null;
     protected $removeAtPathOnFlush = null;
 
-    public function __construct($attribute, $pathTemplate)
+    public function __construct($pathTemplate)
     {
         if (!self::$filesystem) {
             self::$filesystem = app(FilesystemManager::class)->disk(config('eloquent-imagery.filesystem', config('filesystems.default')));
         }
 
-        $this->attribute = $attribute;
         $this->pathTemplate = $pathTemplate;
         $this->metadata = new \ArrayObject([], \ArrayObject::ARRAY_AS_PROPS);
     }
@@ -79,6 +76,10 @@ class Image implements \JsonSerializable
             . ($modifiers ? ".{$modifiers}" : '')
             . ".{$pathinfo['extension']}";
 
+        if ($this->flush === true) {
+            return '';
+        }
+
         return url()->route('eloquent-imagery.render', $pathWithModifiers);
     }
 
@@ -105,22 +106,6 @@ class Image implements \JsonSerializable
             'timestamp' => $this->timestamp,
             'metadata' => $this->metadata->getArrayCopy()
         ];
-    }
-
-    public function fromRequest($request = null)
-    {
-        if (!$request) {
-            $file = request()->file($this->attribute);
-        } elseif (is_string($request)) {
-            $file = request()->file($request);
-        } elseif ($request instanceof Request) {
-            $file = $request->file($this->attribute);
-        } else {
-            throw new \InvalidArgumentException('Unable to get image from request');
-        }
-
-        $this->setData($file);
-        $this->updatePath();
     }
 
     public function setData($data)
@@ -173,6 +158,11 @@ class Image implements \JsonSerializable
         }
     }
 
+    public function setMetadata($metadata)
+    {
+        $this->metadata->exchangeArray($metadata);
+    }
+
     public function updatePath(Model $model = null, $fromTemplate = false)
     {
         $pathReplacements = [];
@@ -199,7 +189,7 @@ class Image implements \JsonSerializable
 
     public function pathHasReplacements()
     {
-        return (bool) preg_match('#{(\w+)}#', $this->path);
+        return (bool)preg_match('#{(\w+)}#', $this->path);
     }
 
     public function isFullyRemoved()
@@ -252,9 +242,10 @@ class Image implements \JsonSerializable
             return $this->metadata;
         }
 
-        if (!in_array($name, ['exists', 'metadata'])) {
+        if (!in_array($name, ['exists', 'metadata', 'timestamp', 'path'])) {
             throw new \OutOfBoundsException("Property $name is not accessible");
         }
+
         return $this->{$name};
     }
 
@@ -275,7 +266,7 @@ class Image implements \JsonSerializable
     {
         if ($this->exists) {
             return [
-                'url'      => $this->url(),
+                'url' => $this->url(),
                 'metadata' => $this->metadata
             ];
         }

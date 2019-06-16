@@ -25,6 +25,9 @@
             "ZiffDavis\\Laravel\\EloquentImagery\\Test\\": "tests/"
         }
     },
+    "suggest": {
+        "intervention/image": "Intervention Image is necessary for serving images that need modification"
+    },
     "extra": {
         "laravel": {
             "providers": [

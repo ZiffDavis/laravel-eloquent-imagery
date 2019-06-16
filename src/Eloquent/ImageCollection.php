@@ -15,6 +15,7 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
     /** @var Image[] */
     protected $images = [];
     protected $autoinc = 1;
+    protected $metadata = [];
 
     protected $deletedImages = [];
 
@@ -24,14 +25,14 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
         $this->pathTemplate = $pathTemplate;
     }
 
+    public function createImage()
+    {
+        return new Image($this->attribute, $this->pathTemplate);
+    }
+
     public function exists()
     {
         return true;
-    }
-
-    public function setModel(Model $model)
-    {
-        $this->model = $model;
     }
 
     public function offsetExists($offset)
@@ -52,7 +53,7 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
     {
         if ($offset === null) {
             $offset = count($this->images);
-            $this->images[$offset] = $image = new Image($this->attribute, $this->pathTemplate);
+            $this->images[$offset] = $image = $this->createImage();
             $image->metadata->index = $this->autoinc++;
         } else {
             $image = $this->images[$offset];
@@ -147,13 +148,15 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
 
     public function setStateProperties(array $properties)
     {
+        $this->autoinc = $properties['autoinc'] ?? 1;
+
         foreach ($properties['images'] as $imageState) {
             $image = new Image($this->attribute, $this->pathTemplate);
             $image->setStateProperties($imageState);
             $this->images[] = $image;
         }
 
-        $this->autoinc = $properties['autoinc'];
+        $this->metadata = $properties['metadata'] ?? [];
     }
 
     public function getStateProperties()
@@ -166,7 +169,20 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
 
         return [
             'autoinc' => $this->autoinc,
-            'images' => $imagesState
+            'images' => $imagesState,
+            'metadata' => $this->metadata
         ];
+    }
+
+    public function __get($name)
+    {
+        switch ($name) {
+            case 'autoinc':
+                return $this->autoinc;
+            case 'images':
+                return $this->images;
+            default:
+                throw new \InvalidArgumentException($name . ' is not a valid property on ' . __CLASS__);
+        }
     }
 }

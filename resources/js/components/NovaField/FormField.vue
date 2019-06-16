@@ -2,56 +2,23 @@
   <default-field :field="field" :errors="errors">
     <template slot="field">
       <div class="bg-white shadow-lg rounded-lg">
-        <div class="flex px-6 py-4" v-for="image in images">
-          <div>
-            <img style="max-height: 80px" class="block mx-auto mb-4 sm:mb-0 sm:mr-4 sm:ml-0" :src="image.url">
-            <div class="flex -mx-3">
-              <input
-                :ref="image.inputId"
-                class="form-file-input select-none"
-                type="file"
-                :id="image.inputId"
-                name="name"
-                @change="fileChange"
-                :disabled="isReadonly"
-              />
-              <label
-                :for="image.inputId"
-                class="text-xs rounded-full mt-1 px-1 py-1 leading-normal border border-primary text-primary hover:bg-primary hover:text-white"
-              >
-                Replace
-              </label>
-
-              <button class="text-xs rounded-full mt-1 ml-1 px-1 py-1 leading-normal border border-danger text-danger hover:bg-danger hover:text-white" v-on:click.prevent="remove">
-                Remove
-              </button>
-            </div>
-          </div>
-          <div class="w-full">
-            <span class="text-sm leading-tight text-grey-dark">
-                Image Metadata:
-            </span>
-            <div class="flex -mx-3 px-3" v-for="(metadata, index) in image.metadata">
-              <input
-                type="text"
-                class="w-1/3 text-xs form-control form-input form-input-bordered"
-                v-model="image.metadata[index].key"
-              />
-              <input
-                type="text"
-                class="w-full text-xs form-control form-input form-input-bordered"
-                v-model="image.metadata[index].value"
-              />
-              <button class="text-xs rounded-full px-1 py-1 leading-normal bg-white border border-danger text-danger hover:bg-danger hover:text-white" v-on:click.prevent="removeMetadata(image, index)">
-                x
-              </button>
-            </div>
-            <div class="mt-1 text-right">
-              <button class="text-xs rounded-full px-4 py-1 leading-normal bg-white border border-primary text-primary hover:bg-primary hover:text-white" v-on:click.prevent="addMetadata(image)" >
-                Add Metadata Row
-              </button>
-            </div>
-          </div>
+        <div v-for="image in images">
+          <image-card-input v-bind:image.sync="image" v-on:remove-image="removeImage"></image-card-input>
+        </div>
+        <div v-if="(isCollection == false && images.length == 0) || isCollection">
+          <input
+            class="form-file-input select-none"
+            type="file"
+            :id="`eloquent-imagery-` + this.field.name + `-add-image`"
+            name="name"
+            @change="addImage"
+          />
+          <label
+            :for="`eloquent-imagery-` + this.field.name + `-add-image`"
+            class="text-xs rounded-full mt-1 px-1 py-1 leading-normal border border-primary text-primary hover:bg-primary hover:text-white"
+          >
+            Add Image
+          </label>
         </div>
       </div>
 
@@ -60,13 +27,17 @@
 </template>
 
 <script>
-  // import ImageLoader from '@laravel-nova/components/ImageLoader'
   import { FormField, HandlesValidationErrors, Errors } from 'laravel-nova'
+  import ImageCardInput from './ImageCardInput'
 
   export default {
     mixins: [FormField, HandlesValidationErrors],
 
     props: ['resourceName', 'resourceId', 'field'],
+
+    components: {
+      ImageCardInput
+    },
 
     data: () => ({
       isCollection: false,
@@ -75,28 +46,31 @@
 
     methods: {
       setInitialValue () {
+        this.isCollection = this.field.isCollection
 
-        this.isCollection = this.field.is_collection
-        let images = (this.isCollection) ? this.field.value : [this.field.value]
+        let images = (this.isCollection) ? this.field.value.images : (this.field.value ? [this.field.value] : [])
 
         this.images = images.map((image, i) => {
           return {
             inputId: 'eloquent-imagery-' + this.field.name + '-' + i,
-            url: image.url,
+            previewUrl: image.previewUrl,
+            path: image.path,
             metadata: Object.keys(image.metadata).map(key => ({'key': key, 'value': image.metadata[key]}))
           }
         })
       },
 
-      fileChange (event) {
-        let image = this.images.find(image => {
-          return image.inputId === event.target.id
-        })
+      addImage (event) {
 
-        let file = this.$refs[event.target.id][0].files[0]
+        let file = event.target.files[0]
 
-        image.url = URL.createObjectURL(file)
-        console.log(image.url)
+        let image = {
+          inputId: 'eloquent-imagery-' + this.field.name + '-' + (this.images.length + 1),
+          previewUrl: URL.createObjectURL(file),
+          metadata: []
+        }
+
+        this.images.push(image)
 
         let reader = new FileReader()
 
@@ -107,34 +81,25 @@
         reader.readAsDataURL(file)
       },
 
-      remove () {
-        alert('hi')
+      removeImage (imageToRemove) {
+        this.images = this.images.filter(image => image !== imageToRemove)
       },
 
       fill (formData) {
-        let serialized = this.images.map(image => {
-          let serializedImage = {}
+        let serializedImages = this.images.map(image => ({
+          fileData: (image.hasOwnProperty('fileData') ? image.fileData : null),
 
-          serializedImage.url = (image.hasOwnProperty('fileData')) ? image.fileData : image.url
+          path: (image.hasOwnProperty('path') ? image.path : null),
 
-          serializedImage.metadata = image.metadata.reduce((object, next) => {
+          metadata: image.metadata.reduce((object, next) => {
             object[next.key] = next.value
             return object
           }, {})
+        }))
 
-          return serializedImage
-        })
-
-        formData.append(this.field.attribute, this.isCollection ? serialized : serialized.pop())
+        formData.append(this.field.attribute, JSON.stringify(this.isCollection ? serializedImages : serializedImages.pop()))
       },
 
-      addMetadata (image) {
-        image.metadata.push({key: '', value: ''})
-      },
-
-      removeMetadata (image, index) {
-        image.metadata.splice(index, 1)
-      }
     }
   }
 </script>

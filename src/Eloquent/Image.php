@@ -9,15 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
-/**
- * @property-read \ArrayObject $metadata
- */
 class Image implements \JsonSerializable
 {
     /** @var Filesystem */
-    protected static $filesystem = null;
-
-    protected $pathTemplate = null;
+    protected $filesystem = null;
 
     protected $path = '';
     protected $extension = '';
@@ -25,22 +20,16 @@ class Image implements \JsonSerializable
     protected $height = null;
     protected $hash = '';
     protected $timestamp = 0;
-    /** @var \ArrayObject */
-    protected $metadata = null;
+    protected $metadata = [];
 
     protected $exists = false;
     protected $flush = false;
     protected $data = null;
     protected $removeAtPathOnFlush = null;
 
-    public function __construct($pathTemplate)
+    public function __construct(Filesystem $filesystem)
     {
-        if (!self::$filesystem) {
-            self::$filesystem = app(FilesystemManager::class)->disk(config('eloquent-imagery.filesystem', config('filesystems.default')));
-        }
-
-        $this->pathTemplate = $pathTemplate;
-        $this->metadata = new \ArrayObject([], \ArrayObject::ARRAY_AS_PROPS);
+        $this->filesystem = $filesystem;
     }
 
     public function exists()
@@ -252,30 +241,19 @@ class Image implements \JsonSerializable
     public function toArray()
     {
         return [
-            'path' => $this->path,
-            'extension' => $this->extension,
-            'width' => $this->width,
-            'height' => $this->height,
-            'hash' => $this->hash,
-            'timestamp' => $this->timestamp,
-            'metadata' => $this->metadata->getArrayCopy()
+            'previewUrl' => ($this->exists) ? $this->url('v' . $this->timestamp) : null,
+            'path'       => $this->path,
+            'extension'  => $this->extension,
+            'width'      => $this->width,
+            'height'     => $this->height,
+            'hash'       => $this->hash,
+            'timestamp'  => $this->timestamp,
+            'metadata'   => $this->metadata
         ];
     }
 
     public function jsonSerialize()
     {
-        if ($this->exists) {
-            return [
-                'url' => $this->url(),
-                'metadata' => $this->metadata
-            ];
-        }
-
-        return null;
-    }
-
-    public function __clone()
-    {
-        $this->metadata = clone $this->metadata;
+        return $this->toArray();
     }
 }

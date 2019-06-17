@@ -2,6 +2,7 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery;
 
+use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -47,6 +48,5 @@ class EloquentImageryProvider extends ServiceProvider
                 Nova::script('eloquent-imagery', __DIR__ . '/../dist/js/nova.js');
             });
         }
-
     }
 }

@@ -10,6 +10,18 @@ class EloquentImageryObserver
 {
     protected $attributeReflector = null;
 
+    /**
+     * [
+     *      __CLASS__:attributes => [
+     *          'is_collection'      => (bool)
+     *          'path_specification' => (string)
+     *          'filesystem'         => ()
+     *
+     *
+     * @var array
+     */
+    protected $managedAttributes = [];
+
     public function __construct()
     {
         $this->attributeReflector = new ReflectionProperty(Model::class, 'attributes');

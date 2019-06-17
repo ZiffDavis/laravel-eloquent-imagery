@@ -2,6 +2,7 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
+use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Support\Str;
 
 /**
@@ -9,17 +10,31 @@ use Illuminate\Support\Str;
  */
 trait HasEloquentImagery
 {
+    protected static $eloquentImageryRuntime = [
+        'observer'                => null,
+        'imagery_enabled_classes' => [] // keys: prototype, config
+    ];
+
     /** @var Image[] */
     protected static $eloquentImageryPrototypes = [];
 
     /** @var Image[]|ImageCollection[] */
     protected $eloquentImageryImages = [];
 
+    /**
+     * Class level (Per-Model) initialization (booting) of the eloquent model, this happens
+     * once per request/php-exection
+     */
     public static function bootHasEloquentImagery()
     {
         static::observe(new EloquentImageryObserver());
+
+        // todo, see if there is an opportunity to do config cleaning, prototyping here
     }
 
+    /**
+     * Per-instance level initialation, this happens every time a Model is new'd up
+     */
     public function initializeHasEloquentImagery()
     {
         if (!empty($this->eloquentImageryImages)) {
@@ -62,7 +77,9 @@ trait HasEloquentImagery
                     : Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}";
             }
 
-            static::$eloquentImageryPrototypes[$attribute] = new $class($attribute, $path);
+            static::$eloquentImageryPrototypes[$attribute] = new $class(
+                app(FilesystemManager::class)->disk(config('eloquent-imagery.filesystem', config('filesystems.default')))
+            );
         }
 
         // set the image as the attribute so that it can be accessed on new instances via attribute accessor

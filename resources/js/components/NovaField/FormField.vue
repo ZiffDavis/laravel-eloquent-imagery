@@ -2,9 +2,11 @@
   <default-field :field="field" :errors="errors">
     <template slot="field">
       <div class="bg-white shadow-lg rounded-lg">
-        <div v-for="image in images">
-          <image-card-input v-bind:image.sync="image" v-on:remove-image="removeImage"></image-card-input>
-        </div>
+        <draggable v-model="images" group="image-group" @start="drag=true" @end="drag=false">
+          <div v-for="image in images">
+              <image-card-input v-bind:image.sync="image" v-on:remove-image="removeImage"></image-card-input>
+          </div>
+        </draggable>
         <div v-if="(isCollection == false && images.length == 0) || isCollection">
           <input
             class="form-file-input select-none"
@@ -28,6 +30,7 @@
 
 <script>
   import { FormField, HandlesValidationErrors, Errors } from 'laravel-nova'
+  import Draggable from 'vuedraggable'
   import ImageCardInput from './ImageCardInput'
 
   export default {
@@ -36,7 +39,8 @@
     props: ['resourceName', 'resourceId', 'field'],
 
     components: {
-      ImageCardInput
+      ImageCardInput,
+      Draggable
     },
 
     data: () => ({

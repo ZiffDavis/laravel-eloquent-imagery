@@ -36,10 +36,10 @@
     }),
 
     mounted () {
-      this.isCollection = this.field.is_collection
-      let images = (this.isCollection) ? this.field.value : (this.field.value ? [this.field.value] : [])
+      let images = (this.field.isCollection) ? this.field.value.images : (this.field.value ? [this.field.value] : [])
 
       this.images = images.map((image, i) => {
+
         return {
           inputId: 'eloquent-imagery-' + this.field.name + '-' + i,
           previewUrl: image.previewUrl,

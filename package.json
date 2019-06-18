@@ -14,5 +14,7 @@
         "laravel-mix": "^1.0",
         "laravel-nova": "^1.0"
     },
-    "dependencies": {}
+    "dependencies": {
+        "vuedraggable": "^2.21.0"
+    }
 }

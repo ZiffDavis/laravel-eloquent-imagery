@@ -1,7 +1,6 @@
 <template>
   <div class="flex px-6 py-4">
     <div>
-      <span class="text-xs">{{ image.path ? image.path : 'new image' }} | {{ image.previewUrl }}</span>
       <img style="max-height: 80px" class="block mx-auto mb-4 sm:mb-0 sm:mr-4 sm:ml-0" :src="image.previewUrl">
       <div class="flex -mx-3">
         <input

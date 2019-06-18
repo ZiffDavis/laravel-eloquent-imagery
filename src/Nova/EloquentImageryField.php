@@ -26,21 +26,34 @@ class EloquentImageryField extends Field
             $fieldAttribute = $model->{$attribute};
 
             if ($fieldAttribute instanceof ImageCollection) {
-                $existingImages = collect($fieldAttribute->toArray())->mapWithKeys(function ($image) {
+
+                $existingImages = $fieldAttribute->exchangeArray([]);
+
+                $existingImages = collect($existingImages)->mapWithKeys(function ($image) {
                     return [$image->path => $image];
                 });
 
-                $newImages = collect($value['images'])->map(function ($imageData) use ($fieldAttribute, $existingImages) {
+                $newImages = collect($value)->map(function ($imageData, $index) use ($fieldAttribute, &$existingImages) {
                     if ($imageData['path']) {
                         $image = $existingImages[$imageData['path']];
+                        unset($existingImages[$imageData['path']]);
                     } else {
-                        $image = $fieldAttribute->offsetSet();
+                        $image = $fieldAttribute->createImage();
+                        $image->setData($imageData['fileData']);
                     }
+
+                    $image->metadata->exchangeArray(array_merge($image->metadata->getArrayCopy(), $imageData['metadata']));
+
+                    $fieldAttribute[$index] = $image;
                 });
 
+                $currentIndex = $newImages->count();
+
+                foreach ($existingImages->values() as $deletedIndex => $existingImage) {
+                    $fieldAttribute[$currentIndex + $deletedIndex] = $existingImage;
+                    unset($fieldAttribute[$currentIndex + $deletedIndex]); // wow, what a weird api
+                }
             } else {
-
-
                 if ($value === null) {
                     $image->remove();
                 } else {

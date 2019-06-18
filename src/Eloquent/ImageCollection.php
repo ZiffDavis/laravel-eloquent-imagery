@@ -25,9 +25,18 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
         $this->pathTemplate = $pathTemplate;
     }
 
-    public function createImage()
+    public function createImage($incrementAutoinc = true)
     {
-        return new Image($this->attribute, $this->pathTemplate);
+        $image = new Image($this->pathTemplate);
+        $image->metadata->index = $this->autoinc++;
+        return $image;
+    }
+
+    public function exchangeArray($images)
+    {
+        $array = $this->images;
+        $this->images = [];
+        return $array;
     }
 
     public function exists()
@@ -51,15 +60,25 @@ class ImageCollection implements \ArrayAccess, Arrayable, \Countable, \IteratorA
 
     public function offsetSet($offset, $value)
     {
+        // get image object
+        if ($offset && isset($this->images[$offset])) {
+            $image = $this->images[$offset];
+        } elseif ($value instanceof Image) {
+            $image = $value;
+        } else {
+            $image = $this->createImage();
+        }
+
         if ($offset === null) {
             $offset = count($this->images);
             $this->images[$offset] = $image = $this->createImage();
-            $image->metadata->index = $this->autoinc++;
         } else {
-            $image = $this->images[$offset];
+            $this->images[$offset] = $image;
         }
 
-        ($value instanceof Request) ? $image->fromRequest($value) : $image->setData($value);
+        if (is_string($value)) {
+            $image->setData($value);
+        }
     }
 
     public function offsetUnset($offset)

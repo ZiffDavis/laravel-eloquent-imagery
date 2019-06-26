@@ -2,22 +2,26 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Filesystem\Cloud;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\FilesystemManager;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
+use finfo;
+use OutOfBoundsException;
+use RuntimeException;
 
 /**
- * @property-read \ArrayObject $metadata
+ * @property-read string $path
+ * @property-read Collection $metadata
  */
 class Image implements \JsonSerializable
 {
-    /** @var Filesystem */
+    /** @var Filesystem|Cloud */
     protected static $filesystem = null;
 
+    /** @var string */
     protected $pathTemplate = null;
 
     protected $path = '';
@@ -36,8 +40,8 @@ class Image implements \JsonSerializable
 
     public function __construct($pathTemplate)
     {
-        if (!self::$filesystem) {
-            self::$filesystem = app(FilesystemManager::class)->disk(config('eloquent-imagery.filesystem', config('filesystems.default')));
+        if (!static::$filesystem) {
+            static::$filesystem = app(FilesystemManager::class)->disk(config('eloquent-imagery.filesystem', config('filesystems.default')));
         }
 
         $this->pathTemplate = $pathTemplate;
@@ -54,11 +58,11 @@ class Image implements \JsonSerializable
         $renderRouteEnabled = config('eloquent-imagery.render.enable');
 
         if ($renderRouteEnabled === false && $modifiers) {
-            throw new \RuntimeException('Cannot process render options unless the rendering route is enabled');
+            throw new RuntimeException('Cannot process render options unless the rendering route is enabled');
         }
 
-        if ($renderRouteEnabled === false) {
-            return self::$filesystem->url($this->path);
+        if ($renderRouteEnabled === false && static::$filesystem instanceof Cloud) {
+            return static::$filesystem->url($this->path);
         }
 
         if ($modifiers) {
@@ -93,7 +97,7 @@ class Image implements \JsonSerializable
         $this->hash = $attributeData['hash'];
         $this->timestamp = $attributeData['timestamp'];
 
-        $this->metadata->exchangeArray($attributeData['metadata']);
+        $this->metadata = new Collection($attributeData['metadata']);
 
         $this->exists = true;
     }
@@ -107,19 +111,19 @@ class Image implements \JsonSerializable
             'height'    => $this->height,
             'hash'      => $this->hash,
             'timestamp' => $this->timestamp,
-            'metadata'  => $this->metadata->getArrayCopy()
+            'metadata'  => $this->metadata->toArray()
         ];
     }
 
     public function setData($data)
     {
-        if ($this->path && self::$filesystem->exists($this->path)) {
+        if ($this->path && static::$filesystem->exists($this->path)) {
             $this->removeAtPathOnFlush = $this->path;
         }
 
         static $fInfo = null;
         if (!$fInfo) {
-            $fInfo = new \Finfo;
+            $fInfo = new finfo;
         }
 
         if ($data instanceof UploadedFile) {
@@ -134,7 +138,7 @@ class Image implements \JsonSerializable
 
         $mimeType = $fInfo->buffer($data, FILEINFO_MIME_TYPE);
         if (!$mimeType) {
-            throw new \InvalidArgumentException('Mime type could not be discovered');
+            throw new RuntimeException('Mime type could not be discovered');
         }
 
         $this->path = $this->pathTemplate;
@@ -157,42 +161,52 @@ class Image implements \JsonSerializable
                 $this->extension = 'gif';
                 break;
             default:
-                throw new \RuntimeException('Unsupported mime-type for expected image: ' . $mimeType);
+                throw new RuntimeException('Unsupported mime-type for expected image: ' . $mimeType);
         }
     }
 
-    public function setMetadata($metadata)
+    public function metadata()
     {
-        $this->metadata->exchangeArray($metadata);
+        return $this->metadata;
     }
 
-    public function updatePath(Model $model = null, $fromTemplate = false)
+    public function updatePath(array $replacements, Model $model)
     {
+        $path = $this->path;
+
+        $updatedPathParts = [];
+
         $pathReplacements = [];
-        $path = ($fromTemplate) ? $this->pathTemplate : $this->path;
         preg_match_all('#{(\w+)}#', $path, $pathReplacements);
 
         foreach ($pathReplacements[1] as $pathReplacement) {
-            if (in_array($pathReplacement, ['attribute', 'extension', 'width', 'height', 'hash', 'timestamp'])) {
+            if (in_array($pathReplacement, ['extension', 'width', 'height', 'hash', 'timestamp'])) {
                 $path = str_replace("{{$pathReplacement}}", $this->{$pathReplacement}, $path);
+                $updatedPathParts[] = $pathReplacement;
                 continue;
             }
-            if (isset($this->metadata[$pathReplacement]) && $this->metadata[$pathReplacement] != '') {
-                $path = str_replace("{{$pathReplacement}}", $this->metadata[$pathReplacement], $path);
+
+            if ($replacements && isset($replacements[$pathReplacement]) && $replacements[$pathReplacement] != '') {
+                $path = str_replace("{{$pathReplacement}}", $replacements[$pathReplacement], $path);
+                $updatedPathParts[] = $pathReplacement;
                 continue;
             }
+
             if ($model && $model->offsetExists($pathReplacement) && $model->offsetGet($pathReplacement) != '') {
                 $path = str_replace("{{$pathReplacement}}", $model->offsetGet($pathReplacement), $path);
+                $updatedPathParts[] = $pathReplacement;
                 continue;
             }
         }
 
         $this->path = $path;
+
+        return $updatedPathParts;
     }
 
     public function pathHasReplacements()
     {
-        return (bool)preg_match('#{(\w+)}#', $this->path);
+        return (bool) preg_match('#{(\w+)}#', $this->path);
     }
 
     public function isFullyRemoved()
@@ -203,7 +217,7 @@ class Image implements \JsonSerializable
     public function remove()
     {
         if ($this->path == '') {
-            throw new \RuntimeException('Called remove on an image that has no path');
+            throw new RuntimeException('Called remove on an image that has no path');
         }
         $this->exists = false;
         $this->flush = true;
@@ -215,7 +229,7 @@ class Image implements \JsonSerializable
         $this->height = null;
         $this->hash = '';
         $this->timestamp = 0;
-        $this->metadata->exchangeArray([]);
+        $this->metadata = new Collection;
     }
 
     public function flush()
@@ -225,15 +239,14 @@ class Image implements \JsonSerializable
         }
 
         if ($this->removeAtPathOnFlush) {
-            self::$filesystem->delete($this->removeAtPathOnFlush);
-            $this->remove = null;
+            static::$filesystem->delete($this->removeAtPathOnFlush);
         }
 
         if ($this->data) {
             if ($this->pathHasReplacements()) {
-                throw new \RuntimeException('The image path still has an unresolved replacement in it ("{...}") and cannot be saved: ' . $this->path);
+                throw new RuntimeException('The image path still has an unresolved replacement in it ("{...}") and cannot be saved: ' . $this->path);
             }
-            self::$filesystem->put($this->path, $this->data);
+            static::$filesystem->put($this->path, $this->data);
         }
 
         $this->flush = false;
@@ -245,11 +258,13 @@ class Image implements \JsonSerializable
             return $this->metadata;
         }
 
-        if (!in_array($name, ['exists', 'metadata', 'timestamp', 'path'])) {
-            throw new \OutOfBoundsException("Property $name is not accessible");
+        $properties = $this->toArray();
+
+        if (!array_key_exists($name, $properties)) {
+            throw new OutOfBoundsException("Property $name is not accessible");
         }
 
-        return $this->{$name};
+        return $properties[$name];
     }
 
     public function toArray()
@@ -261,7 +276,7 @@ class Image implements \JsonSerializable
             'height' => $this->height,
             'hash' => $this->hash,
             'timestamp' => $this->timestamp,
-            'metadata' => $this->metadata->getArrayCopy()
+            'metadata' => $this->metadata->toArray()
         ];
     }
 
@@ -269,8 +284,8 @@ class Image implements \JsonSerializable
     {
         if ($this->exists) {
             return [
-                'url' => $this->url(),
-                'metadata' => $this->metadata
+                'previewUrl' => $this->url('v' . $this->timestamp),
+                'metadata'   => $this->metadata
             ];
         }
 

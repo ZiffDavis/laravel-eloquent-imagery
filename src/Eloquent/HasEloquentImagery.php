@@ -2,7 +2,8 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
-use Illuminate\Support\Str;
+use Illuminate\Filesystem\FilesystemManager;
+use RuntimeException;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Model
@@ -29,11 +30,11 @@ trait HasEloquentImagery
     public function initializeHasEloquentImagery()
     {
         if (!empty($this->eloquentImageryImages)) {
-            throw new \RuntimeException('$eloquentImageryImages should be empty, are you sure you have your configuration in the right place?');
+            throw new RuntimeException('$eloquentImageryImages should be empty, are you sure you have your configuration in the right place?');
         }
 
         if (empty($this->eloquentImagery) || !property_exists($this, 'eloquentImagery')) {
-            throw new \RuntimeException('You are using ' . __TRAIT__ . ' but have not yet configured it through $eloquentImagery, please see the docs');
+            throw new RuntimeException('You are using ' . __TRAIT__ . ' but have not yet configured it through $eloquentImagery, please see the docs');
         }
 
         foreach ($this->eloquentImagery as $attribute => $config) {
@@ -42,15 +43,19 @@ trait HasEloquentImagery
             }
 
             if (!is_array($config)) {
-                throw new \RuntimeException('configuration must be a string or array');
+                throw new RuntimeException('configuration must be a string or array');
             }
 
-            if (isset($config['collection']) && $config['collection'] === true) {
-                $prototype = static::$eloquentImageryPrototypes[$attribute]
-                    ?? (static::$eloquentImageryPrototypes[$attribute] = new ImageCollection($config['path']));
+            if (!isset(static::$eloquentImageryPrototypes[$attribute])) {
+                $prototype = new Image($config['path']);
+
+                if (isset($config['collection']) && $config['collection'] === true) {
+                    $prototype = new ImageCollection($prototype);
+                }
+
+                static::$eloquentImageryPrototypes[$attribute] = $prototype;
             } else {
-                $prototype = static::$eloquentImageryPrototypes[$attribute]
-                    ?? (static::$eloquentImageryPrototypes[$attribute] = new Image($config['path']));
+                $prototype = static::$eloquentImageryPrototypes[$attribute];
             }
 
             $this->attributes[$attribute] = $this->eloquentImageryImages[$attribute] = clone $prototype;

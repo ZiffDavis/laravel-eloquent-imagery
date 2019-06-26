@@ -98,6 +98,7 @@ class EloquentImageryController extends Controller
 
         // step 3: no placeholder, no primary FS image, look for fallback image on alternative filesystem if enabled
         if (!$imageBytes && config('eloquent-imagery.render.fallback.enable')) {
+            /** @var Filesystem $fallbackFilesystem */
             $fallbackFilesystem = app(FilesystemManager::class)->disk(config('eloquent-imagery.render.fallback.filesystem'));
             try {
                 $imageBytes = $fallbackFilesystem->get($storagePath);

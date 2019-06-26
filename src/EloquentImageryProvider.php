@@ -10,7 +10,6 @@ use Laravel\Nova\Events\ServingNova;
 use Laravel\Nova\Nova;
 use Laravel\Nova\NovaCoreServiceProvider;
 use RuntimeException;
-use ZiffDavis\Laravel\EloquentImagery\Eloquent\EloquentImageryObserver;
 
 class EloquentImageryProvider extends ServiceProvider
 {

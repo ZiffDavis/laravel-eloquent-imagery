@@ -7,6 +7,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -25,7 +26,7 @@ class Image implements \JsonSerializable
     protected $height = null;
     protected $hash = '';
     protected $timestamp = 0;
-    /** @var \ArrayObject */
+    /** @var Collection */
     protected $metadata = null;
 
     protected $exists = false;
@@ -40,7 +41,7 @@ class Image implements \JsonSerializable
         }
 
         $this->pathTemplate = $pathTemplate;
-        $this->metadata = new \ArrayObject([], \ArrayObject::ARRAY_AS_PROPS);
+        $this->metadata = new Collection;
     }
 
     public function exists()
@@ -83,28 +84,30 @@ class Image implements \JsonSerializable
         return url()->route('eloquent-imagery.render', $pathWithModifiers);
     }
 
-    public function setStateProperties($properties)
+    public function setStateFromAttributeData($attributeData)
     {
-        $this->path = $properties['path'];
-        $this->extension = $properties['extension'];
-        $this->width = $properties['width'];
-        $this->height = $properties['height'];
-        $this->hash = $properties['hash'];
-        $this->timestamp = $properties['timestamp'];
-        $this->metadata->exchangeArray($properties['metadata']);
+        $this->path = $attributeData['path'];
+        $this->extension = $attributeData['extension'];
+        $this->width = $attributeData['width'];
+        $this->height = $attributeData['height'];
+        $this->hash = $attributeData['hash'];
+        $this->timestamp = $attributeData['timestamp'];
+
+        $this->metadata->exchangeArray($attributeData['metadata']);
+
         $this->exists = true;
     }
 
-    public function getStateProperties()
+    public function getStateAsAttributeData()
     {
         return [
-            'path' => $this->path,
+            'path'      => $this->path,
             'extension' => $this->extension,
-            'width' => $this->width,
-            'height' => $this->height,
-            'hash' => $this->hash,
+            'width'     => $this->width,
+            'height'    => $this->height,
+            'hash'      => $this->hash,
             'timestamp' => $this->timestamp,
-            'metadata' => $this->metadata->getArrayCopy()
+            'metadata'  => $this->metadata->getArrayCopy()
         ];
     }
 

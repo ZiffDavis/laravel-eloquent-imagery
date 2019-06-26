@@ -10,6 +10,7 @@ use Laravel\Nova\Events\ServingNova;
 use Laravel\Nova\Nova;
 use Laravel\Nova\NovaCoreServiceProvider;
 use RuntimeException;
+use ZiffDavis\Laravel\EloquentImagery\Eloquent\EloquentImageryObserver;
 
 class EloquentImageryProvider extends ServiceProvider
 {
@@ -47,6 +48,12 @@ class EloquentImageryProvider extends ServiceProvider
                 Nova::script('eloquent-imagery', __DIR__ . '/../dist/js/nova.js');
             });
         }
-
+    }
+    
+    public function register()
+    {
+        // $this->app->factory(EloquentImageryObserver::class, function () {
+        //     return new EloquentImageryObserver();
+        // });
     }
 }

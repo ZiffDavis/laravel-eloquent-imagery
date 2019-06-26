@@ -8,12 +8,19 @@ use ReflectionProperty;
 
 class EloquentImageryObserver
 {
-    protected $attributeReflector = null;
+    /** @var ReflectionProperty  */
+    protected $eloquentImageryImagesReflector;
 
-    public function __construct()
+    /** @var ReflectionProperty */
+    protected $attributesReflector;
+
+    public function __construct($modelClassToObserve)
     {
-        $this->attributeReflector = new ReflectionProperty(Model::class, 'attributes');
-        $this->attributeReflector->setAccessible(true);
+        $this->eloquentImageryImagesReflector = new ReflectionProperty($modelClassToObserve, 'eloquentImageryImages');
+        $this->eloquentImageryImagesReflector->setAccessible(true);
+
+        $this->attributesReflector = new ReflectionProperty($modelClassToObserve, 'attributes');
+        $this->attributesReflector->setAccessible(true);
     }
 
     /**
@@ -21,11 +28,11 @@ class EloquentImageryObserver
      */
     public function retrieved(Model $model)
     {
-        $attributeImages = $model->getEloquentImageryImages();
+        $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
 
-        $modelAttributes = $this->attributeReflector->getValue($model);
+        $modelAttributes = $this->attributesReflector->getValue($model);
 
-        foreach ($attributeImages as $attribute => $image) {
+        foreach ($eloquentImageryImages as $attribute => $image) {
             // in the case a model was retrieved and the image column was not returned
             if (!array_key_exists($attribute, $modelAttributes)) {
                 continue;
@@ -45,7 +52,7 @@ class EloquentImageryObserver
             $image->setStateProperties($properties);
         }
 
-        $this->attributeReflector->setValue($model, $modelAttributes);
+        $this->attributesReflector->setValue($model, $modelAttributes);
     }
 
     /**
@@ -53,13 +60,13 @@ class EloquentImageryObserver
      */
     public function saving(Model $model)
     {
-        $attributeImages = $model->getEloquentImageryImages();
+        $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
 
         $casts = $model->getCasts();
 
         $modelAttributes = $this->attributeReflector->getValue($model);
 
-        foreach ($attributeImages as $attribute => $image) {
+        foreach ($eloquentImageryImages as $attribute => $image) {
             if ($image->pathHasReplacements()) {
                 $image->updatePath($model);
             }
@@ -90,13 +97,13 @@ class EloquentImageryObserver
      */
     public function saved(Model $model)
     {
-        $attributeImages = $model->getEloquentImageryImages();
+        $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
 
         $errors = [];
 
         $modelAttributes = $this->attributeReflector->getValue($model);
 
-        foreach ($attributeImages as $attribute => $image) {
+        foreach ($eloquentImageryImages as $attribute => $image) {
             if ($image->pathHasReplacements()) {
 
                 $image->updatePath($model);

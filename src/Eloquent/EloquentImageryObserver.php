@@ -5,6 +5,7 @@ namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use ReflectionProperty;
+use RuntimeException;
 
 class EloquentImageryObserver
 {
@@ -107,6 +108,8 @@ class EloquentImageryObserver
         /** @var Image[]|ImageCollection[] $eloquentImageryImages */
         $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
 
+        $casts = $model->getCasts();
+
         $errors = [];
 
         $modelAttributes = $this->attributesReflector->getValue($model);
@@ -114,15 +117,15 @@ class EloquentImageryObserver
         foreach ($eloquentImageryImages as $attribute => $image) {
             if ($image->pathHasReplacements()) {
 
-                $image->updatePath($model);
+                $image->updatePath([], $model);
 
                 if ($image->pathHasReplacements()) {
                     $errors[] = "After saving row, image for attribute {$attribute}'s path still contains unresolvable path replacements";
                 }
 
-                $imageState = $image->getStateProperties();
+                $imageState = $image->getStateAsAttributeData();
 
-                $value = (isset($this->casts[$attribute]) && $this->casts[$attribute] === 'json')
+                $value = (isset($casts[$attribute]) && $casts[$attribute] === 'json')
                     ? $imageState
                     : json_encode($imageState);
 
@@ -139,7 +142,7 @@ class EloquentImageryObserver
         $this->attributesReflector->setValue($model, $modelAttributes);
 
         if ($errors) {
-            throw new \RuntimeException(implode('; ', $errors));
+            throw new RuntimeException(implode('; ', $errors));
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
+use Carbon\Carbon;
 use Illuminate\Contracts\Filesystem\Cloud;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Model;
@@ -147,7 +148,7 @@ class Image implements \JsonSerializable
         $this->data = $data;
         $this->width = $width;
         $this->height = $height;
-        $this->timestamp = time();
+        $this->timestamp = Carbon::now()->unix();
         $this->hash = md5($data);
 
         switch ($mimeType) {
@@ -269,15 +270,7 @@ class Image implements \JsonSerializable
 
     public function toArray()
     {
-        return [
-            'path' => $this->path,
-            'extension' => $this->extension,
-            'width' => $this->width,
-            'height' => $this->height,
-            'hash' => $this->hash,
-            'timestamp' => $this->timestamp,
-            'metadata' => $this->metadata->toArray()
-        ];
+        return $this->getStateAsAttributeData();
     }
 
     public function jsonSerialize()

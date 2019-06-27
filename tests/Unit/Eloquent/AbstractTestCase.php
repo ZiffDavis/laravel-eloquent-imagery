@@ -2,6 +2,7 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery\Test\Unit\Eloquent;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Orchestra\Testbench\TestCase;
 
@@ -14,6 +15,8 @@ abstract class AbstractTestCase extends TestCase
             'driver' => 'local',
             'root' => realpath(__DIR__ . '/../../') . '/storage',
         ]);
+
+        Carbon::setTestNow(Carbon::now());
     }
 
     public function tearDown(): void

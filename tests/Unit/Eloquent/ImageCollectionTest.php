@@ -2,6 +2,7 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery\Test\Unit\Eloquent;
 
+use Carbon\Carbon;
 use ZiffDavis\Laravel\EloquentImagery\Eloquent\Image;
 use ZiffDavis\Laravel\EloquentImagery\Eloquent\ImageCollection;
 use ZiffDavis\Laravel\EloquentImagery\EloquentImageryProvider;
@@ -19,7 +20,7 @@ class ImageCollectionTest extends AbstractTestCase
 
         $state = [
             'autoincrement' => 10,
-            'images' => [
+            'images'        => [
                 [
                     'path'      => 'foo/bar.jpg',
                     'extension' => 'jpg',
@@ -30,7 +31,9 @@ class ImageCollectionTest extends AbstractTestCase
                     'metadata'  => []
                 ]
             ],
-            'metadata' => []
+            'metadata'      => [
+                'foo' => 'bar'
+            ]
         ];
 
         $imageCollection->setStateFromAttributeData($state);
@@ -41,49 +44,109 @@ class ImageCollectionTest extends AbstractTestCase
         $this->assertEquals('foo/bar.jpg', $image->path);
         $this->assertTrue($image->exists());
         $this->assertEquals('http://localhost/imagery/foo/bar.jpg', $image->url());
+        $this->assertEquals('bar', $imageCollection->metadata()['foo']);
+    }
+
+    public function testPathHasReplacements()
+    {
+        $imageCollection = new ImageCollection(new Image('foo/{name}-{index}.{extension}'));
+        $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.jpg'));
+
+        $this->assertTrue($imageCollection->pathHasReplacements());
+
+        $imageCollection->updatePath(['name' => 'bar'], new TestAssets\FooModel);
+
+        $this->assertFalse($imageCollection->pathHasReplacements());
     }
 
     public function testOffsetSet()
     {
         $imageCollection = new ImageCollection(new Image('foo/{name}-{index}.{extension}'));
 
+        // add image
         $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.jpg'));
+
+        // add bytes that will go through createImage()
+        $imageCollection[] = file_get_contents(__DIR__ . '/TestAssets/30.png');
+
+        $this->assertCount(2, $imageCollection);
+        $this->assertInstanceOf(Image::class, $imageCollection[0]);
+        $this->assertInstanceOf(Image::class, $imageCollection[1]);
+    }
+
+    public function testOffsetUnset()
+    {
+        $imageCollection = new ImageCollection(new Image('foo/{name}-{index}.{extension}'));
+        $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.jpg'));
+        $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.png'));
+
+        $this->assertCount(2, $imageCollection);
+
+        unset($imageCollection[1]);
 
         $this->assertCount(1, $imageCollection);
     }
 
-    // public function testUpdatePath()
-    // {
-    //     $foo = new TestAssets\FooModel();
-    //     $foo->setRawAttributes(['id' => 20], true);
-    //
-    //     $pngImageData = file_get_contents(__DIR__ . '/TestAssets/30.png');
-    //
-    //     $image = new Image('foo/{id}.{extension}');
-    //     $image->setData($pngImageData);
-    //     $updatedParts = $image->updatePath([], $foo);
-    //
-    //     $this->assertEquals('foo/20.png', $image->path);
-    //     $this->assertEquals(['id', 'extension'], $updatedParts);
-    //
-    //     $image = new Image('foo/{outside_var}.{extension}');
-    //     $image->setData($pngImageData);
-    //     $updatedParts = $image->updatePath(['outside_var' => 'foobar'], $foo);
-    //
-    //     $this->assertEquals('foo/foobar.png', $image->path);
-    //     $this->assertEquals(['outside_var', 'extension'], $updatedParts);
-    // }
-    //
-    // public function testPathHasReplacements()
-    // {
-    //     $image = new Image('foo/{id}.{extension}');
-    //     $image->setData(file_get_contents(__DIR__ . '/TestAssets/30.png'));
-    //
-    //     $this->assertTrue($image->pathHasReplacements());
-    //
-    //     $image->updatePath(['id' => 5, 'extension' => 'jpg'], new TestAssets\FooModel);
-    //
-    //     $this->assertFalse($image->pathHasReplacements());
-    // }
+
+    public function testFlush()
+    {
+        $imageCollection = new ImageCollection(new Image('foo/{slug}-{index}.{extension}'));
+        $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.jpg'));
+        $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.png'));
+
+        $model = new TestAssets\FooModel();
+        $model->setRawAttributes(['slug' => 'bar-baz'], true);
+
+        $imageCollection->updatePath([], $model);
+        $imageCollection->flush();
+
+        $this->assertFileExists(__DIR__ . '/../../storage/foo/bar-baz-1.jpg');
+        $this->assertFileExists(__DIR__ . '/../../storage/foo/bar-baz-2.png');
+    }
+
+    public function testGetStateAsDataAttribute()
+    {
+        $imageCollection = new ImageCollection(new Image('foo/{slug}-{index}.{extension}'));
+        $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.jpg'));
+        $imageCollection[] = $imageCollection->createImage(file_get_contents(__DIR__ . '/TestAssets/30.png'));
+
+        $model = new TestAssets\FooModel();
+        $model->setRawAttributes(['slug' => 'boom'], true);
+
+        $imageCollection->updatePath([], $model);
+
+        $this->assertEquals(
+            [
+                'autoincrement' => 3,
+                'images'        => [
+                    [
+                        'path'      => 'foo/boom-1.jpg',
+                        'extension' => 'jpg',
+                        'width'     => 30,
+                        'height'    => 30,
+                        'hash'      => '809dcbbcd89eb8a275a6c6f4556e1f41',
+                        'timestamp' => Carbon::getTestNow()->unix(),
+                        'metadata'  => [],
+                    ],
+                    [
+                        'path'      => 'foo/boom-2.png',
+                        'extension' => 'png',
+                        'width'     => 30,
+                        'height'    => 30,
+                        'hash'      => '7692f4f945481216e41ce0a8f42f6ed6',
+                        'timestamp' => Carbon::getTestNow()->unix(),
+                        'metadata'  => []
+                    ]
+                ],
+                'metadata'      => []
+            ],
+            $imageCollection->getStateAsAttributeData()
+        );
+    }
+
+    public function testOffsetUnset()
+    {
+
+    }
 }
 

@@ -52,6 +52,11 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
         return $this->images;
     }
 
+    public function metadata()
+    {
+        return $this->metadata;
+    }
+
     /**
      * Get an iterator for the items.
      *
@@ -65,7 +70,7 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     /**
      * Determine if the given item exists.
      *
-     * @param  mixed  $key
+     * @param mixed $key
      * @return bool
      */
     public function offsetExists($key)
@@ -76,7 +81,7 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     /**
      * Get the item at the given offset.
      *
-     * @param  mixed  $key
+     * @param mixed $key
      * @return mixed
      */
     public function offsetGet($key)
@@ -87,8 +92,8 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     /**
      * Set the item at the given offset.
      *
-     * @param  mixed  $key
-     * @param  mixed  $value
+     * @param mixed $key
+     * @param mixed $value
      * @return void
      */
     public function offsetSet($key, $value)
@@ -103,7 +108,7 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     /**
      * Unset the item at the given key.
      *
-     * @param  mixed  $key
+     * @param mixed $key
      * @return void
      */
     public function offsetUnset($key)
@@ -132,11 +137,7 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
      */
     public function toArray()
     {
-        return [
-            'images' => $this->images->toArray(),
-            'metadata' => $this->metadata->toArray(),
-            'autoincrement' => 1,
-        ];
+        return $this->getStateAsAttributeData();
     }
 
     /**
@@ -152,7 +153,7 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     /**
      * Convert the object to its JSON representation.
      *
-     * @param  int  $options
+     * @param int $options
      * @return string
      */
     public function toJson($options = 0)
@@ -180,11 +181,13 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
 
     public function getStateAsAttributeData()
     {
+        $images = $this->images->map(function (Image $image) {
+            return $image->getStateAsAttributeData();
+        })->toArray();
+
         return [
             'autoincrement' => $this->autoincrement,
-            'images'        => $this->images->map(function (Image $image) {
-                return $image->getStateAsAttributeData();
-            }),
+            'images'        => $images,
             'metadata'      => $this->metadata->toArray()
         ];
     }
@@ -192,7 +195,7 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     public function pathHasReplacements()
     {
         return $this->images->every(function ($image) {
-            return $this->pathHasReplacements();
+            return $image->pathHasReplacements();
         });
     }
 
@@ -209,7 +212,7 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     public function updatePath(array $replacements, Model $model)
     {
         $this->images->each(function (Image $image) use ($replacements, $model) {
-            $updatedPathParts = $image->updatePath(['index' => $this->autoincrement], $model);
+            $updatedPathParts = $image->updatePath(array_merge($replacements, ['index' => $this->autoincrement]), $model);
 
             if (in_array('index', $updatedPathParts)) {
                 $this->autoincrement++;
@@ -241,8 +244,8 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
     /**
      * Make dynamic calls into the collection.
      *
-     * @param  string  $method
-     * @param  array  $parameters
+     * @param string $method
+     * @param array $parameters
      * @return mixed
      */
     public function __call($method, $parameters)

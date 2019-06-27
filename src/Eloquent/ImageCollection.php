@@ -225,8 +225,10 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
      */
     public function remove()
     {
-        $this->images->each(function (Image $image) {
+        $this->images = $this->images->filter(function (Image $image) {
+            $this->deletedImages[] = $image;
             $image->remove();
+            return false;
         });
     }
 

@@ -48,11 +48,4 @@ class EloquentImageryProvider extends ServiceProvider
             });
         }
     }
-    
-    public function register()
-    {
-        // $this->app->factory(EloquentImageryObserver::class, function () {
-        //     return new EloquentImageryObserver();
-        // });
-    }
 }

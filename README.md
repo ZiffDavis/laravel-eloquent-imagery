@@ -114,13 +114,37 @@ Using modifiers when generating the url, a url generated such as
 
 ```php
 @if($bam->image->exists)
-    <img src="{{ $bam->image->url('size200x200|trim) }}" width="20" />
+    <img src="{{ $bam->image->url('size_200x200|trim) }}" width="20" />
 @endif
 ```
 
 ## Image Modifiers
 
-TODO
+Eloquent Imagery supports a variety of url-based image modifiers. In code, they are specified in a pipe separated string
+similar to the syntax for applying standard Laravel fitlers and validators (see above example). In a raw URL they 
+are specified in a period (.) separated string. If modifiers takes an argument, the modifiers use an underscore (_) to 
+separate the modifier from the argument. 
+
+* **size** - set the desired width and height of the image. Takes width and height as an argument in `[width]x[height]` 
+             format. Size has actual affect without specifying a **fit** option.
+* **fit** - Options are `resize`, `lim`, `scale`, and `lpad`. 
+    * **lim** - Limit. This resizes and image to be at most no bigger in either dimension than a bounding box specified 
+                by the dimensions in the **size** parameter, and maintains the existing aspect ratio. Will not grow
+                the image beyond its original size.
+    * **lpad** - The same operation as **lim** except the image will be padded with extra pixels after the resizing
+                 operation, yielding an image that is *exactly* the size specified in **size**.
+    * **resize** - Resize the image to the dimensions in size. No aspect ratio preservation is done.
+    * **scale** - Scale the image up beyond its original size, to a bounding box specified in **size**, allowing the
+                  image to grow beyond its original size.
+* **bgcolor** - Used in conjunction with **lpad**. If the image is a JPEG or non-transparent PNG, **bgcolor** is used 
+                to determine the color of pixels to fill in the padding with. Specified as a hex value.
+* **quality** - Set the compression quality for JPEG images to control filesize. Defaults to 75.
+* **trim** - Automatically trim extra whitespace off the edges of an image. Specified as an integer tolerance value from 
+             1-99.
+* **crop** - Crop an image. Takes either a single integer value to crop off equally on all sides of the image, or a 
+             4-place comma-separated list of x,y,width,height, describing coordinates from the top left of the image.
+* **v** - Version of the image. This modifier is effectively a no-op but is expected to take a unix timestamp that is the
+          modification date of the iamge, for cache busting.  
 
 ## Detailed Configuration
 

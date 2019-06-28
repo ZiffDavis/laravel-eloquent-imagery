@@ -144,7 +144,10 @@ separate the modifier from the argument.
 * **crop** - Crop an image. Takes either a single integer value to crop off equally on all sides of the image, or a 
              4-place comma-separated list of x,y,width,height, describing coordinates from the top left of the image.
 * **v** - Version of the image. This modifier is effectively a no-op but is expected to take a unix timestamp that is the
-          modification date of the iamge, for cache busting.  
+          modification date of the iamge, for cache busting.
+          
+Example URL with some common modifiers:
+`/imagery/articles/378-hero-lg.fit_limit.size_800x250.v_1561474098.jpg`  
 
 ## Detailed Configuration
 

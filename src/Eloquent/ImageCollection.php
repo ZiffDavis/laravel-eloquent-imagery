@@ -194,6 +194,10 @@ class ImageCollection implements Arrayable, ArrayAccess, Countable, IteratorAggr
 
     public function pathHasReplacements()
     {
+        if ($this->images->count() === 0) {
+            return false;
+        }
+
         return $this->images->every(function ($image) {
             return $image->pathHasReplacements();
         });

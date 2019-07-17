@@ -81,9 +81,7 @@ class EloquentImageryObserver
 
             if ($image instanceof ImageCollection) {
                 $image->purgeRemovedImages();
-            }
-
-            if (!$image->exists()) {
+            } elseif ($image instanceof Image && !$image->exists()) {
                 $modelAttributes[$attribute] = null;
                 continue;
             }

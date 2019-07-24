@@ -2,14 +2,15 @@
 
 namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 
-use Illuminate\Support\Str;
+use Illuminate\Filesystem\FilesystemManager;
+use RuntimeException;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Model
  */
 trait HasEloquentImagery
 {
-    /** @var Image[] */
+    /** @var Image[]|ImageCollection[] */
     protected static $eloquentImageryPrototypes = [];
 
     /** @var Image[]|ImageCollection[] */
@@ -17,17 +18,23 @@ trait HasEloquentImagery
 
     public static function bootHasEloquentImagery()
     {
-        static::observe(new EloquentImageryObserver());
+        $observer = new EloquentImageryObserver(get_called_class());
+
+        // register directly so that the instance is preserved (not preserved via static::observe())
+        static::registerModelEvent('retrieved', [$observer, 'retrieved']);
+        static::registerModelEvent('saving', [$observer, 'saving']);
+        static::registerModelEvent('saved', [$observer, 'saved']);
+        static::registerModelEvent('deleted', [$observer, 'deleted']);
     }
 
     public function initializeHasEloquentImagery()
     {
         if (!empty($this->eloquentImageryImages)) {
-            throw new \RuntimeException('$eloquentImageryImages should be empty, are you sure you have your configuration in the right place?');
+            throw new RuntimeException('$eloquentImageryImages should be empty, are you sure you have your configuration in the right place?');
         }
 
         if (empty($this->eloquentImagery) || !property_exists($this, 'eloquentImagery')) {
-            throw new \RuntimeException('You are using ' . __TRAIT__ . ' but have not yet configured it through $eloquentImagery, please see the docs');
+            throw new RuntimeException('You are using ' . __TRAIT__ . ' but have not yet configured it through $eloquentImagery, please see the docs');
         }
 
         foreach ($this->eloquentImagery as $attribute => $config) {
@@ -35,45 +42,23 @@ trait HasEloquentImagery
                 $config = ['path' => $config];
             }
 
-            if (isset($config['collection']) && $config['collection'] === true) {
-                $this->eloquentImageryCollection($attribute, $config['path']);
+            if (!is_array($config)) {
+                throw new RuntimeException('configuration must be a string or array');
+            }
+
+            if (!isset(static::$eloquentImageryPrototypes[$attribute])) {
+                $prototype = new Image($config['path']);
+
+                if (isset($config['collection']) && $config['collection'] === true) {
+                    $prototype = new ImageCollection($prototype);
+                }
+
+                static::$eloquentImageryPrototypes[$attribute] = $prototype;
             } else {
-                $this->eloquentImagery($attribute, $config['path']);
-            }
-        }
-    }
-
-    public function eloquentImagery($attribute, $path = null)
-    {
-        $this->eloquentImageryInitializeImage(Image::class, $attribute, $path);
-    }
-
-    public function eloquentImageryCollection($attribute, $path = null)
-    {
-        $this->eloquentImageryInitializeImage(ImageCollection::class, $attribute, $path);
-    }
-
-    protected function eloquentImageryInitializeImage($class, $attribute, $path)
-    {
-        if (!isset(static::$eloquentImageryPrototypes[$attribute])) {
-            if (!$path) {
-                $path = ($class === ImageCollection::class)
-                    ? Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}-{index}.{extension}"
-                    : Str::singular($this->getTable()) . '/{' . $this->getKeyName() . "}/{$attribute}.{extension}";
+                $prototype = static::$eloquentImageryPrototypes[$attribute];
             }
 
-            static::$eloquentImageryPrototypes[$attribute] = new $class($attribute, $path);
+            $this->attributes[$attribute] = $this->eloquentImageryImages[$attribute] = clone $prototype;
         }
-
-        // set the image as the attribute so that it can be accessed on new instances via attribute accessor
-        $this->eloquentImageryImages[$attribute] = $this->attributes[$attribute] = clone static::$eloquentImageryPrototypes[$attribute];
-    }
-
-    /**
-     * @return Image[]|ImageCollection[]
-     */
-    public function getEloquentImageryImages()
-    {
-        return $this->eloquentImageryImages;
     }
 }

@@ -47,6 +47,5 @@ class EloquentImageryProvider extends ServiceProvider
                 Nova::script('eloquent-imagery', __DIR__ . '/../dist/js/nova.js');
             });
         }
-
     }
 }

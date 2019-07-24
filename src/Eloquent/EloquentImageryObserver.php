@@ -5,15 +5,28 @@ namespace ZiffDavis\Laravel\EloquentImagery\Eloquent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use ReflectionProperty;
+use RuntimeException;
 
 class EloquentImageryObserver
 {
-    protected $attributeReflector = null;
+    /** @var ReflectionProperty  */
+    protected $eloquentImageryImagesReflector;
 
-    public function __construct()
+    /** @var ReflectionProperty */
+    protected $attributesReflector;
+
+    /**
+     * EloquentImageryObserver constructor.
+     * @param $modelClassToObserve
+     * @throws \ReflectionException
+     */
+    public function __construct($modelClassToObserve)
     {
-        $this->attributeReflector = new ReflectionProperty(Model::class, 'attributes');
-        $this->attributeReflector->setAccessible(true);
+        $this->eloquentImageryImagesReflector = new ReflectionProperty($modelClassToObserve, 'eloquentImageryImages');
+        $this->eloquentImageryImagesReflector->setAccessible(true);
+
+        $this->attributesReflector = new ReflectionProperty($modelClassToObserve, 'attributes');
+        $this->attributesReflector->setAccessible(true);
     }
 
     /**
@@ -21,31 +34,32 @@ class EloquentImageryObserver
      */
     public function retrieved(Model $model)
     {
-        $attributeImages = $model->getEloquentImageryImages();
+        /** @var Image[]|ImageCollection[] $eloquentImageryImages */
+        $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
 
-        $modelAttributes = $this->attributeReflector->getValue($model);
+        $modelAttributes = $this->attributesReflector->getValue($model);
 
-        foreach ($attributeImages as $attribute => $image) {
+        foreach ($eloquentImageryImages as $attribute => $image) {
             // in the case a model was retrieved and the image column was not returned
             if (!array_key_exists($attribute, $modelAttributes)) {
                 continue;
             }
 
-            $properties = $modelAttributes[$attribute];
+            $attributeData = $modelAttributes[$attribute];
             $modelAttributes[$attribute] = $image;
 
-            if ($properties == '') {
+            if ($attributeData == '') {
                 continue;
             }
 
-            if (is_string($properties)) {
-                $properties = json_decode($properties, true);
+            if (is_string($attributeData)) {
+                $attributeData = json_decode($attributeData, true);
             }
 
-            $image->setStateProperties($properties);
+            $image->setStateFromAttributeData($attributeData);
         }
 
-        $this->attributeReflector->setValue($model, $modelAttributes);
+        $this->attributesReflector->setValue($model, $modelAttributes);
     }
 
     /**
@@ -53,36 +67,35 @@ class EloquentImageryObserver
      */
     public function saving(Model $model)
     {
-        $attributeImages = $model->getEloquentImageryImages();
+        /** @var Image[]|ImageCollection[] $eloquentImageryImages */
+        $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
 
         $casts = $model->getCasts();
 
-        $modelAttributes = $this->attributeReflector->getValue($model);
+        $modelAttributes = $this->attributesReflector->getValue($model);
 
-        foreach ($attributeImages as $attribute => $image) {
+        foreach ($eloquentImageryImages as $attribute => $image) {
             if ($image->pathHasReplacements()) {
-                $image->updatePath($model);
+                $image->updatePath([], $model);
             }
 
             if ($image instanceof ImageCollection) {
                 $image->purgeRemovedImages();
-            }
-
-            if (!$image->exists()) {
+            } elseif ($image instanceof Image && !$image->exists()) {
                 $modelAttributes[$attribute] = null;
                 continue;
             }
 
-            $imageState = $image->getStateProperties();
+            $attributeData = $image->getStateAsAttributeData();
 
             $value = (isset($casts[$attribute]) && $casts[$attribute] === 'json')
-                ? $imageState
-                : json_encode($imageState);
+                ? $attributeData
+                : json_encode($attributeData);
 
             $modelAttributes[$attribute] = $value;
         }
 
-        $this->attributeReflector->setValue($model, $modelAttributes);
+        $this->attributesReflector->setValue($model, $modelAttributes);
     }
 
     /**
@@ -90,24 +103,27 @@ class EloquentImageryObserver
      */
     public function saved(Model $model)
     {
-        $attributeImages = $model->getEloquentImageryImages();
+        /** @var Image[]|ImageCollection[] $eloquentImageryImages */
+        $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
+
+        $casts = $model->getCasts();
 
         $errors = [];
 
-        $modelAttributes = $this->attributeReflector->getValue($model);
+        $modelAttributes = $this->attributesReflector->getValue($model);
 
-        foreach ($attributeImages as $attribute => $image) {
+        foreach ($eloquentImageryImages as $attribute => $image) {
             if ($image->pathHasReplacements()) {
 
-                $image->updatePath($model);
+                $image->updatePath([], $model);
 
                 if ($image->pathHasReplacements()) {
                     $errors[] = "After saving row, image for attribute {$attribute}'s path still contains unresolvable path replacements";
                 }
 
-                $imageState = $image->getStateProperties();
+                $imageState = $image->getStateAsAttributeData();
 
-                $value = (isset($this->casts[$attribute]) && $this->casts[$attribute] === 'json')
+                $value = (isset($casts[$attribute]) && $casts[$attribute] === 'json')
                     ? $imageState
                     : json_encode($imageState);
 
@@ -121,10 +137,10 @@ class EloquentImageryObserver
             $modelAttributes[$attribute] = $image;
         }
 
-        $this->attributeReflector->setValue($model, $modelAttributes);
+        $this->attributesReflector->setValue($model, $modelAttributes);
 
         if ($errors) {
-            throw new \RuntimeException(implode('; ', $errors));
+            throw new RuntimeException(implode('; ', $errors));
         }
     }
 
@@ -137,7 +153,10 @@ class EloquentImageryObserver
             return;
         }
 
-        foreach ($model->getEloquentImageryImages() as $image) {
+        /** @var Image[]|ImageCollection[] $eloquentImageryImages */
+        $eloquentImageryImages = $this->eloquentImageryImagesReflector->getValue($model);
+
+        foreach ($eloquentImageryImages as $image) {
             if ($image->exists()) {
                 $image->remove();
                 $image->flush();

@@ -231,5 +231,5 @@ This will allow for the dynamic (controller) route or static route (link to stor
 
 ### Updating to 0.5.0
 
-- make sure to rename the `config/eloquent_imagery.php` to config/eloquent-imagery.php`, probably a good idea to re-copy the original (or publish again).
+- make sure to rename the `config/eloquent_imagery.php` to `config/eloquent-imagery.php`, probably a good idea to re-copy the original (or publish again).
 - see the new method of configuring a model to use an image: use a property called `$eloqentImagery`

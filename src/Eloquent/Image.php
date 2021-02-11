@@ -209,9 +209,6 @@ class Image implements \JsonSerializable
 
     public function remove()
     {
-        if ($this->path == '') {
-            throw new \RuntimeException('Called remove on an image that has no path');
-        }
         $this->exists = false;
         $this->flush = true;
         $this->removeAtPathOnFlush = $this->path;
